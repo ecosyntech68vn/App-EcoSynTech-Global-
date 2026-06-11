@@ -100,6 +100,18 @@ for (const f of ['file_paths.xml', 'network_security_config.xml']) {
   ok('Copied res/xml/' + f);
 }
 
+// ===== 3b. background-runner cần android-js-engine-release.aar trong app/libs =====
+// (gradle search: android/app/libs/ — npm package để ở node_modules/.../src/main/libs/)
+const AAR_SRC = join(ROOT, 'node_modules/@capacitor/background-runner/android/src/main/libs/android-js-engine-release.aar');
+const APP_LIBS = join(ROOT, 'android/app/libs');
+if (existsSync(AAR_SRC)) {
+  mkdirSync(APP_LIBS, { recursive: true });
+  copyFileSync(AAR_SRC, join(APP_LIBS, 'android-js-engine-release.aar'));
+  ok('Copied android-js-engine-release.aar → android/app/libs/ (background-runner)');
+} else {
+  console.warn('⚠ Không thấy android-js-engine-release.aar trong node_modules — background-runner có thể fail');
+}
+
 // ===== 4. versionCode / versionName =====
 if (!existsSync(GRADLE)) fail('Không thấy ' + GRADLE);
 let g = readFileSync(GRADLE, 'utf8');
