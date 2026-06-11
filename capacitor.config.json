@@ -1,0 +1,30 @@
+{
+  "appId": "vn.ecosyntech.farmos",
+  "appName": "EcoSynTech Farm OS",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  },
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1500,
+      "backgroundColor": "#2E7D32",
+      "androidSplashResourceName": "splash",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "backgroundColor": "#2E7D32",
+      "style": "LIGHT"
+    },
+    "Camera": {
+      "androidScaleType": "CENTER_CROP"
+    }
+  }
+}

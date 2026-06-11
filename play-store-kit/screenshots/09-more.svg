@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+  <rect width="1080" height="1920" fill="#F7F8F5"/>
+  <rect x="0" y="0" width="1080" height="80" fill="#1B5E20"/>
+  <rect x="0" y="80" width="1080" height="120" fill="#2E7D32"/>
+  <text x="60" y="160" font-family="Arial" font-size="46" font-weight="700" fill="white">☰ More — 12 tính năng</text>
+
+  <text x="60" y="260" font-family="Arial" font-size="22" font-weight="700" fill="#5C6B6B">V1.1 — CORE+</text>
+
+  <g font-family="Arial">
+    <rect x="60" y="280" width="960" height="120" rx="16" fill="white"/>
+    <text x="100" y="350" font-size="48">⚡</text>
+    <text x="180" y="340" font-size="32" font-weight="700" fill="#1A1A1A">Điều khiển thiết bị</text>
+    <text x="180" y="380" font-size="22" fill="#5C6B6B">2-step confirm</text>
+    <text x="980" y="355" text-anchor="end" font-size="48" fill="#5C6B6B">›</text>
+
+    <rect x="60" y="420" width="960" height="120" rx="16" fill="white"/>
+    <text x="100" y="490" font-size="48">⏰</text>
+    <text x="180" y="480" font-size="32" font-weight="700" fill="#1A1A1A">Lịch tưới / bón</text>
+    <text x="180" y="520" font-size="22" fill="#5C6B6B">Auto schedule</text>
+    <text x="980" y="495" text-anchor="end" font-size="48" fill="#5C6B6B">›</text>
+
+    <rect x="60" y="560" width="960" height="120" rx="16" fill="white"/>
+    <text x="100" y="630" font-size="48">📈</text>
+    <text x="180" y="620" font-size="32" font-weight="700" fill="#1A1A1A">Biểu đồ lịch sử</text>
+    <text x="180" y="660" font-size="22" fill="#5C6B6B">24h / 7d / 30d</text>
+    <text x="980" y="635" text-anchor="end" font-size="48" fill="#5C6B6B">›</text>
+  </g>
+
+  <text x="60" y="740" font-family="Arial" font-size="22" font-weight="700" fill="#5C6B6B">V1.2 — SMART</text>
+
+  <g font-family="Arial">
+    <rect x="60" y="760" width="960" height="120" rx="16" fill="white"/>
+    <text x="100" y="830" font-size="48">📷</text>
+    <text x="180" y="820" font-size="32" font-weight="700" fill="#1A1A1A">QR scan thiết bị</text>
+    <text x="180" y="860" font-size="22" fill="#5C6B6B">Camera scan</text>
+
+    <rect x="60" y="900" width="960" height="120" rx="16" fill="white"/>
+    <text x="100" y="970" font-size="48">🌤</text>
+    <text x="180" y="960" font-size="32" font-weight="700" fill="#1A1A1A">Thời tiết</text>
+    <text x="180" y="1000" font-size="22" fill="#5C6B6B">OpenWeather</text>
+
+    <rect x="60" y="1040" width="960" height="120" rx="16" fill="white"/>
+    <text x="100" y="1110" font-size="48">📥</text>
+    <text x="180" y="1100" font-size="32" font-weight="700" fill="#1A1A1A">Cập nhật app</text>
+    <text x="180" y="1140" font-size="22" fill="#5C6B6B">OTA GitHub Releases</text>
+  </g>
+
+  <text x="60" y="1220" font-family="Arial" font-size="22" font-weight="700" fill="#5C6B6B">V1.3 — PRO</text>
+
+  <g font-family="Arial">
+    <rect x="60" y="1240" width="465" height="120" rx="16" fill="white"/>
+    <text x="100" y="1310" font-size="48">🏡</text>
+    <text x="180" y="1305" font-size="26" font-weight="700" fill="#1A1A1A">Đa nông trại</text>
+
+    <rect x="555" y="1240" width="465" height="120" rx="16" fill="white"/>
+    <text x="595" y="1310" font-size="48">📄</text>
+    <text x="675" y="1305" font-size="26" font-weight="700" fill="#1A1A1A">PDF Report</text>
+
+    <rect x="60" y="1380" width="465" height="120" rx="16" fill="white"/>
+    <text x="100" y="1450" font-size="48">🖼</text>
+    <text x="180" y="1445" font-size="26" font-weight="700" fill="#1A1A1A">Album</text>
+
+    <rect x="555" y="1380" width="465" height="120" rx="16" fill="white"/>
+    <text x="595" y="1450" font-size="48">📖</text>
+    <text x="675" y="1445" font-size="26" font-weight="700" fill="#1A1A1A">SOP</text>
+
+    <rect x="60" y="1520" width="465" height="120" rx="16" fill="white"/>
+    <text x="100" y="1590" font-size="48">🐛</text>
+    <text x="180" y="1585" font-size="26" font-weight="700" fill="#1A1A1A">Sâu bệnh</text>
+
+    <rect x="555" y="1520" width="465" height="120" rx="16" fill="white"/>
+    <text x="595" y="1590" font-size="48">📲</text>
+    <text x="675" y="1585" font-size="26" font-weight="700" fill="#1A1A1A">Zalo share</text>
+  </g>
+
+  <text x="540" y="1750" text-anchor="middle" font-family="Arial" font-size="24" fill="#5C6B6B">EcoSynTech Farm OS v3.0.0 · 18 tính năng</text>
+</svg>

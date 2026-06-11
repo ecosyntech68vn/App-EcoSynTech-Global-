@@ -1,0 +1,66 @@
+name: CI Build & Test
+
+on:
+  push:
+    branches: [main, develop, 'feat/**', 'fix/**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web-build:
+    name: Web build (Vite)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install deps
+        run: npm install --legacy-peer-deps --no-audit --no-fund
+
+      - name: Lint (if present)
+        run: npm run lint --if-present
+        continue-on-error: true
+
+      - name: Test (if present)
+        run: npm test --if-present
+        continue-on-error: true
+
+      - name: Vite build (Capacitor target)
+        run: npm run build
+
+      - name: Vite build (Browser shim for dev test)
+        run: CAP_BROWSER=1 npm run build
+        continue-on-error: true
+
+      - name: Upload web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-www
+          path: www/
+          retention-days: 7
+
+  syntax-check:
+    name: JS syntax check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Node syntax check all src JS
+        run: |
+          set -e
+          for f in $(find src -name "*.js"); do
+            node --check "$f" || (echo "FAIL: $f" && exit 1)
+          done
+          node --check vite.config.js
+          echo "All JS files pass syntax check"

@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+  <rect width="1080" height="1920" fill="#F7F8F5"/>
+  <rect x="0" y="0" width="1080" height="80" fill="#1B5E20"/>
+  <text x="60" y="55" font-family="Arial" font-size="32" fill="white" font-weight="700">14:25</text>
+
+  <rect x="0" y="80" width="1080" height="120" fill="#2E7D32"/>
+  <text x="60" y="160" font-family="Arial" font-size="46" font-weight="700" fill="white">⚙️ Cài đặt</text>
+
+  <text x="60" y="280" font-family="Arial" font-size="26" font-weight="700" fill="#5C6B6B">SERVER URL (LAN WLC)</text>
+  <rect x="60" y="300" width="960" height="100" rx="16" fill="white" stroke="#E1E5DD" stroke-width="2"/>
+  <text x="100" y="365" font-family="Courier" font-size="32" fill="#1A1A1A">http://192.168.1.100:3000</text>
+
+  <rect x="60" y="420" width="200" height="60" rx="12" fill="white" stroke="#2E7D32" stroke-width="3"/>
+  <text x="160" y="462" text-anchor="middle" font-family="Arial" font-size="24" font-weight="700" fill="#2E7D32">Test</text>
+
+  <text x="60" y="540" font-family="Arial" font-size="26" font-weight="700" fill="#5C6B6B">CLOUD URL (GAS WEB APP)</text>
+  <rect x="60" y="560" width="960" height="100" rx="16" fill="white" stroke="#E1E5DD" stroke-width="2"/>
+  <text x="100" y="625" font-family="Courier" font-size="26" fill="#5C6B6B">https://script.google.com/.../exec</text>
+
+  <text x="60" y="720" font-family="Arial" font-size="26" font-weight="700" fill="#5C6B6B">CHẾ ĐỘ MẠNG</text>
+  <rect x="60" y="740" width="960" height="100" rx="16" fill="white" stroke="#E1E5DD" stroke-width="2"/>
+  <text x="100" y="805" font-family="Arial" font-size="36" fill="#1A1A1A">Auto (LAN → Cloud)</text>
+  <text x="990" y="805" text-anchor="end" font-family="Arial" font-size="36" fill="#5C6B6B">▾</text>
+
+  <rect x="60" y="880" width="960" height="120" rx="16" fill="#2E7D32"/>
+  <text x="540" y="958" text-anchor="middle" font-family="Arial" font-size="42" font-weight="700" fill="white">Lưu cài đặt</text>
+
+  <line x1="60" y1="1060" x2="1020" y2="1060" stroke="#E1E5DD" stroke-width="2"/>
+
+  <text x="60" y="1120" font-family="Arial" font-size="32" font-weight="700" fill="#1A1A1A">Bộ nhớ + Sync</text>
+  <text x="60" y="1170" font-family="Arial" font-size="28" fill="#5C6B6B">Queue chờ sync: <tspan font-weight="700" fill="#1A1A1A">3</tspan></text>
+
+  <rect x="60" y="1200" width="465" height="100" rx="16" fill="white" stroke="#2E7D32" stroke-width="3"/>
+  <text x="292" y="1265" text-anchor="middle" font-family="Arial" font-size="32" font-weight="700" fill="#2E7D32">↻ Sync ngay</text>
+
+  <rect x="555" y="1200" width="465" height="100" rx="16" fill="#C62828"/>
+  <text x="787" y="1265" text-anchor="middle" font-family="Arial" font-size="32" font-weight="700" fill="white">Xoá queue</text>
+
+  <line x1="60" y1="1360" x2="1020" y2="1360" stroke="#E1E5DD" stroke-width="2"/>
+
+  <text x="60" y="1420" font-family="Arial" font-size="32" font-weight="700" fill="#1A1A1A">Tài khoản</text>
+  <text x="60" y="1470" font-family="Arial" font-size="28" fill="#5C6B6B">Farmer ID: <tspan font-weight="700" fill="#1A1A1A">FRM-001</tspan></text>
+
+  <rect x="60" y="1500" width="960" height="120" rx="16" fill="#C62828"/>
+  <text x="540" y="1578" text-anchor="middle" font-family="Arial" font-size="42" font-weight="700" fill="white">Đăng xuất</text>
+
+  <text x="540" y="1700" text-anchor="middle" font-family="Arial" font-size="24" fill="#5C6B6B">EcoSynTech Farm OS v1.0.0</text>
+  <text x="540" y="1740" text-anchor="middle" font-family="Arial" font-size="22" fill="#5C6B6B">Build 2026-06-10</text>
+
+  <!-- Bottom nav -->
+  <rect x="0" y="1770" width="1080" height="150" fill="white"/>
+  <g font-family="Arial" font-size="22">
+    <text x="108" y="1830" text-anchor="middle" font-size="40">📊</text>
+    <text x="108" y="1870" text-anchor="middle" fill="#5C6B6B">Sensor</text>
+    <text x="324" y="1830" text-anchor="middle" font-size="40">🚨</text>
+    <text x="324" y="1870" text-anchor="middle" fill="#5C6B6B">Alert</text>
+    <text x="540" y="1830" text-anchor="middle" font-size="40">📝</text>
+    <text x="540" y="1870" text-anchor="middle" fill="#5C6B6B">Log</text>
+    <text x="756" y="1830" text-anchor="middle" font-size="40">✅</text>
+    <text x="756" y="1870" text-anchor="middle" fill="#5C6B6B">Task</text>
+    <text x="972" y="1830" text-anchor="middle" font-size="40">⚙️</text>
+    <text x="972" y="1870" text-anchor="middle" fill="#2E7D32" font-weight="700">Cài đặt</text>
+  </g>
+</svg>

@@ -1,0 +1,63 @@
+name: Build Debug APK (demo)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: debug-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-debug:
+    name: Debug APK V4
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install deps
+        run: npm install --legacy-peer-deps --no-audit --no-fund
+
+      - name: Vite build
+        run: npm run build
+
+      - name: Add Capacitor Android platform (fresh)
+        run: npx cap add android
+
+      - name: Patch Android project (permissions + xml + version 4.0.0)
+        run: node scripts/ci-patch-android.mjs
+
+      - name: Capacitor sync
+        run: npx cap sync android
+
+      - name: Gradle assembleDebug
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Collect APK
+        run: |
+          mkdir -p dist
+          cp android/app/build/outputs/apk/debug/app-debug.apk dist/farmos-v4.0.0-debug.apk
+          ls -la dist/
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: farmos-v4.0.0-debug-apk
+          path: dist/farmos-v4.0.0-debug.apk
+          retention-days: 30

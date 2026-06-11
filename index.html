@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#2E7D32" />
+  <title>EcoSynTech Farm OS</title>
+  <link rel="stylesheet" href="/src/styles/app.css" />
+</head>
+<body>
+  <div id="app" x-data="appRoot()" x-cloak>
+    <template x-if="!authed">
+      <div id="page-login"></div>
+    </template>
+    <template x-if="authed">
+      <main class="app-shell">
+        <div id="page-content" x-html="pageHtml"></div>
+        <nav class="bottom-nav">
+          <button @click="nav('dashboard')" :class="{active: page==='dashboard'}">
+            <span class="ico">📊</span><span>Sensor</span>
+          </button>
+          <button @click="nav('alerts')" :class="{active: page==='alerts'}">
+            <span class="ico">🚨</span><span>Alert</span>
+            <span class="badge" x-show="alertBadge>0" x-text="alertBadge"></span>
+          </button>
+          <button @click="nav('log')" :class="{active: page==='log'}">
+            <span class="ico">📝</span><span>Log</span>
+          </button>
+          <button @click="nav('tasks')" :class="{active: page==='tasks'}">
+            <span class="ico">✅</span><span>Task</span>
+          </button>
+          <button @click="nav('more')" :class="{active: ['control','schedule','chart','scan','weather','update','report','gallery','sop','pest','farms','more','lots','materials','rules'].includes(page)}">
+            <span class="ico">☰</span><span>More</span>
+          </button>
+          <button @click="nav('settings')" :class="{active: page==='settings'}">
+            <span class="ico">⚙️</span><span>Cfg</span>
+          </button>
+        </nav>
+      </main>
+    </template>
+    <div class="offline-banner" x-show="!online" x-transition>
+      ⚠ Offline — dữ liệu sẽ sync khi có mạng
+    </div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

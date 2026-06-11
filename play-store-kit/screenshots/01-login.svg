@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+  <defs>
+    <linearGradient id="bg1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2E7D32"/>
+      <stop offset="100%" stop-color="#1B5E20"/>
+    </linearGradient>
+  </defs>
+  <rect width="1080" height="1920" fill="url(#bg1)"/>
+
+  <!-- Phone status bar -->
+  <rect x="0" y="0" width="1080" height="80" fill="rgba(0,0,0,0.2)"/>
+  <text x="60" y="55" font-family="Arial" font-size="32" fill="white" font-weight="700">14:25</text>
+  <text x="1020" y="55" text-anchor="end" font-family="Arial" font-size="28" fill="white">📶 🔋</text>
+
+  <!-- Logo -->
+  <text x="540" y="380" text-anchor="middle" font-family="Arial" font-size="80" font-weight="900" fill="white">🌱 EcoSynTech</text>
+  <text x="540" y="450" text-anchor="middle" font-family="Arial" font-size="40" fill="#A5D6A7">Farm OS · v1.0.0</text>
+
+  <!-- Login card -->
+  <rect x="80" y="600" width="920" height="900" rx="32" fill="white"/>
+
+  <text x="120" y="700" font-family="Arial" font-size="28" font-weight="700" fill="#5C6B6B">SERVER URL</text>
+  <rect x="120" y="720" width="840" height="100" rx="16" fill="#F7F8F5" stroke="#E1E5DD" stroke-width="2"/>
+  <text x="150" y="785" font-family="Courier" font-size="36" fill="#1A1A1A">http://192.168.1.100:3000</text>
+
+  <text x="120" y="880" font-family="Arial" font-size="28" font-weight="700" fill="#5C6B6B">CHẾ ĐỘ MẠNG</text>
+  <rect x="120" y="900" width="840" height="100" rx="16" fill="#F7F8F5" stroke="#E1E5DD" stroke-width="2"/>
+  <text x="150" y="965" font-family="Arial" font-size="36" fill="#1A1A1A">Auto (LAN → fallback Cloud)</text>
+  <text x="930" y="965" text-anchor="end" font-family="Arial" font-size="36" fill="#5C6B6B">▾</text>
+
+  <text x="120" y="1060" font-family="Arial" font-size="28" font-weight="700" fill="#5C6B6B">PIN 4 SỐ</text>
+  <rect x="120" y="1080" width="840" height="100" rx="16" fill="#F7F8F5" stroke="#E1E5DD" stroke-width="2"/>
+  <text x="540" y="1150" text-anchor="middle" font-family="Arial" font-size="56" letter-spacing="20" fill="#1A1A1A">● ● ● ●</text>
+
+  <!-- Buttons -->
+  <rect x="120" y="1230" width="840" height="110" rx="16" fill="#2E7D32"/>
+  <text x="540" y="1300" text-anchor="middle" font-family="Arial" font-size="40" font-weight="700" fill="white">Đăng nhập</text>
+
+  <rect x="120" y="1370" width="840" height="110" rx="16" fill="white" stroke="#2E7D32" stroke-width="3"/>
+  <text x="540" y="1440" text-anchor="middle" font-family="Arial" font-size="40" font-weight="700" fill="#2E7D32">Test kết nối</text>
+
+  <!-- Footer -->
+  <text x="540" y="1700" text-anchor="middle" font-family="Arial" font-size="28" fill="#A5D6A7">v1.0.0 · Offline-first · Frugal · Human-centric</text>
+</svg>

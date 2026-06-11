@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Truy xuất nguồn gốc — EcoSynTech Farm OS</title>
+<meta name="description" content="Truy xuất nguồn gốc nông sản EcoSynTech — từ ngày gieo hạt đến lúc lên kệ. Gọn nhẹ — Bền bỉ — Luôn đồng hành." />
+<meta name="theme-color" content="#0d2b25" />
+<style>
+:root{
+  --bg-1:#0a1f2e; --bg-2:#0d3524; --ink:#0f2419;
+  --lime:#9be15d; --green:#43b95e; --cyan:#26c6da; --gold:#d9a93f;
+  --card:#ffffff; --txt:#16332a; --muted:#5d7a6e; --line:#e4efe7;
+  --grad:linear-gradient(135deg,#56c14e 0%,#2bbf9a 55%,#1ba7d4 100%);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{
+  font-family:'Segoe UI',system-ui,-apple-system,Roboto,sans-serif;
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(67,233,123,.14), transparent 60%),
+    radial-gradient(900px 500px at -10% 30%, rgba(38,198,218,.10), transparent 55%),
+    linear-gradient(160deg,var(--bg-1) 0%,var(--bg-2) 100%);
+  min-height:100vh; color:#eaf6ee;
+}
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; opacity:.05;
+  background-image:linear-gradient(rgba(155,225,93,.55) 1px,transparent 1px),linear-gradient(90deg,rgba(155,225,93,.55) 1px,transparent 1px);
+  background-size:34px 34px;
+}
+.wrap{max-width:520px;margin:0 auto;padding:18px 16px 40px;position:relative}
+
+/* Header brand */
+.brand{display:flex;align-items:center;gap:12px;padding:6px 2px 18px}
+.brand .mark{width:52px;height:52px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 3px rgba(155,225,93,.25),0 6px 18px rgba(0,0,0,.35);flex:none}
+.brand .mark svg{width:40px;height:40px}
+.brand .name{font-size:21px;font-weight:800;letter-spacing:.5px;line-height:1.1}
+.brand .name b{color:#fff}.brand .name span{color:var(--lime)}
+.brand .tag{font-size:10.5px;letter-spacing:2.2px;color:#bfe3cd;margin-top:3px;font-weight:600}
+
+/* Status hero */
+.hero{border-radius:18px;padding:18px;background:rgba(255,255,255,.06);border:1px solid rgba(155,225,93,.25);backdrop-filter:blur(4px);margin-bottom:14px}
+.badge{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:13px;padding:7px 14px;border-radius:999px}
+.badge.ok{background:rgba(155,225,93,.16);color:var(--lime);border:1px solid rgba(155,225,93,.45)}
+.badge.warn{background:rgba(217,169,63,.16);color:#f3cf7c;border:1px solid rgba(217,169,63,.45)}
+.badge.err{background:rgba(255,99,99,.14);color:#ff9d9d;border:1px solid rgba(255,99,99,.4)}
+.hero h1{font-size:27px;line-height:1.22;margin-top:12px;font-weight:800}
+.hero h1 em{font-style:normal;color:var(--lime)}
+.hero .code{margin-top:10px;font-size:13px;color:#bfe3cd}
+.hero .code b{color:#fff;font-family:ui-monospace,Consolas,monospace;letter-spacing:.5px}
+.verify-line{margin-top:10px;font-size:12px;color:#9ec7b0;display:flex;align-items:center;gap:6px}
+
+/* Cards */
+.card{background:var(--card);color:var(--txt);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.card h2{font-size:13px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card h2::before{content:"";width:18px;height:3px;border-radius:2px;background:var(--grad)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kv{background:#f4faf5;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.kv .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+.kv .v{font-size:15px;font-weight:700;margin-top:3px;word-break:break-word}
+.kv.span2{grid-column:1/-1}
+.phi-ok{display:flex;gap:10px;align-items:flex-start;background:#eef9ee;border:1px solid #bfe5c2;border-radius:12px;padding:12px;margin-top:10px;font-size:13.5px;color:#1d5e2f}
+.phi-bad{display:flex;gap:10px;align-items:flex-start;background:#fdf3e7;border:1px solid #ecd2a8;border-radius:12px;padding:12px;margin-top:10px;font-size:13.5px;color:#7a5410}
+
+/* Timeline */
+.tl{position:relative;padding-left:26px}
+.tl::before{content:"";position:absolute;left:8px;top:6px;bottom:6px;width:2px;background:linear-gradient(#56c14e,#1ba7d4);border-radius:2px}
+.ev{position:relative;padding:0 0 16px}
+.ev:last-child{padding-bottom:2px}
+.ev::before{content:"";position:absolute;left:-24px;top:4px;width:12px;height:12px;border-radius:50%;background:#fff;border:3px solid #43b95e;box-shadow:0 0 0 3px rgba(67,185,94,.18)}
+.ev.harvest::before{border-color:var(--gold);box-shadow:0 0 0 3px rgba(217,169,63,.2)}
+.ev .when{font-size:11.5px;color:var(--muted)}
+.ev .what{font-size:15px;font-weight:700;margin-top:2px}
+.ev .det{font-size:13px;color:#3c5a4c;margin-top:3px;line-height:1.45}
+.ev .det b{color:#1d5e2f}
+
+/* Pillars */
+.pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pill{background:#f4faf5;border:1px solid var(--line);border-radius:12px;padding:12px 8px;text-align:center}
+.pill .ic{font-size:22px}
+.pill .t{font-size:11.5px;font-weight:700;margin-top:6px;line-height:1.35;color:#1d5e2f}
+
+/* Footer */
+.foot{margin-top:6px;text-align:center;color:#9ec7b0;font-size:12.5px;line-height:1.7}
+.foot .bar{display:inline-block;margin-top:10px;background:var(--grad);color:#06251a;font-weight:800;padding:10px 22px;border-radius:999px;text-decoration:none;font-size:13.5px}
+.foot .slogan{letter-spacing:2px;font-size:10.5px;font-weight:700;color:#bfe3cd;margin-top:14px}
+
+/* States */
+.state{padding:50px 18px;text-align:center}
+.state .big{font-size:44px}
+.state h2{font-size:19px;margin:12px 0 8px;color:#fff}
+.state p{font-size:14px;color:#bfe3cd;line-height:1.6}
+.spin{width:38px;height:38px;border-radius:50%;border:4px solid rgba(155,225,93,.25);border-top-color:var(--lime);margin:0 auto;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.demo-note{background:rgba(217,169,63,.14);border:1px solid rgba(217,169,63,.4);color:#f3cf7c;border-radius:12px;padding:10px 14px;font-size:12.5px;margin-bottom:14px;text-align:center}
+.fade{animation:fade .5s ease both}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Brand header -->
+  <div class="brand">
+    <div class="mark">
+      <!-- Logo chính thức (logo.png cạnh file này); nếu thiếu → fallback SVG -->
+      <img src="logo.png" alt="EcoSynTech" style="width:46px;height:46px;border-radius:50%;"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='block';" />
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-label="EcoSynTech logo" style="display:none;">
+        <defs>
+          <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#56c14e"/><stop offset=".6" stop-color="#2bbf9a"/><stop offset="1" stop-color="#1ba7d4"/>
+          </linearGradient>
+          <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#7ed957"/><stop offset="1" stop-color="#1e7a46"/>
+          </linearGradient>
+        </defs>
+        <!-- circular arrows -->
+        <g fill="none" stroke="url(#g1)" stroke-width="8" stroke-linecap="round">
+          <path d="M50 10 A40 40 0 0 1 86 35"/>
+          <path d="M88 58 A40 40 0 0 1 56 89"/>
+          <path d="M32 86 A40 40 0 0 1 12 42"/>
+        </g>
+        <g fill="url(#g1)">
+          <path d="M84 28 L96 36 L82 44 Z"/>
+          <path d="M60 86 L48 96 L46 80 Z"/>
+          <path d="M14 36 L8 22 L24 26 Z"/>
+        </g>
+        <!-- leaf -->
+        <path d="M50 22 C66 36 70 54 50 76 C30 54 34 36 50 22 Z" fill="url(#g2)"/>
+        <!-- circuit -->
+        <g stroke="#eafff0" stroke-width="2.4" fill="none" stroke-linecap="round">
+          <path d="M50 74 L50 34"/><path d="M50 46 L41 39"/><path d="M50 42 L59 36"/>
+          <path d="M50 56 L40 50"/><path d="M50 60 L61 52"/>
+        </g>
+        <g fill="#eafff0">
+          <circle cx="41" cy="39" r="2.6"/><circle cx="59" cy="36" r="2.6"/>
+          <circle cx="40" cy="50" r="2.6"/><circle cx="61" cy="52" r="2.6"/><circle cx="50" cy="33" r="2.6"/>
+        </g>
+      </svg>
+    </div>
+    <div>
+      <div class="name"><b>ECOSYNTECH</b> <span>GLOBAL</span></div>
+      <div class="tag">GỌN NHẸ — BỀN BỈ — LUÔN ĐỒNG HÀNH</div>
+    </div>
+  </div>
+
+  <div id="app">
+    <div class="state" id="loading">
+      <div class="spin"></div>
+      <h2>Đang tra cứu hồ sơ truy xuất…</h2>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="foot fade">
+    <div>Hồ sơ được ghi <b style="color:#dff5e6">tự động, theo thời gian thực</b> từ EcoSynTech Farm OS —<br/>chuỗi sự kiện không chỉnh sửa được sau khi ghi.</div>
+    <a class="bar" href="https://ecosyntechglobal.com" target="_blank" rel="noopener">🌱 ecosyntechglobal.com</a>
+    <div class="slogan">TRUY XUẤT TẬN GỐC · VẬN HÀNH KHÔNG GIÁN ĐOẠN · TUẦN HOÀN XANH</div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   EcoSynTech Trace Landing V1.0 — 2026-06-11
+   Nguồn dữ liệu (theo thứ tự):
+   1) GAS cloud  ?action=trace&code=...   → badge "Đã xác minh server"
+   2) Payload nhúng trong QR (#d=base64url JSON) → hoạt động 100% offline-backend
+   3) ?demo=1 → hồ sơ mẫu
+   Payload format (khớp app mobile V3.1 tracePayload):
+   {v:1, code, farm, crop, variety, zone, planted, harvest:{qty,unit,date}, events:[{t,ts,m,d,n}]}
+   ===================================================================== */
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzj0t4VjEeDdEntmQ0vxeJSLQ3lU4M4H_3p9w7bbJmCxqf9l04dGiInKZK8LDjK2VvL/exec';
+
+const LBL = {
+  planting:['🌱','Xuống giống'], irrigation:['💧','Tưới nước'], fertilizer:['🧪','Bón phân'],
+  pest:['🛡️','Xử lý bảo vệ thực vật'], weeding:['🌿','Chăm sóc'], inspection:['🔍','Kiểm tra'],
+  harvest:['🌾','Thu hoạch'], other:['📝','Hoạt động']
+};
+
+function getCode(){
+  const m = location.pathname.match(/\/t\/([^\/\?#]+)/);
+  if (m) return decodeURIComponent(m[1]);
+  const q = new URLSearchParams(location.search);
+  return q.get('code') || '';
+}
+function getEmbedded(){
+  const h = location.hash.match(/[#&]d=([A-Za-z0-9_\-]+={0,2})/);
+  if (!h) return null;
+  try {
+    const b64 = h[1].replace(/-/g,'+').replace(/_/g,'/');
+    return JSON.parse(decodeURIComponent(escape(atob(b64))));
+  } catch(e){ return null; }
+}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function dt(ts){ if(!ts) return ''; const d=new Date(ts); return d.toLocaleDateString('vi-VN')+' '+d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}); }
+
+const DEMO = {
+  v:1, code:'EST-F1-260611-01', farm:'Farm Demo · Củ Chi, TP.HCM', crop:'Rau muống', variety:'Giống cao sản VN',
+  zone:'Z1', planted:'2026-05-12', harvest:{qty:150,unit:'kg',date:'2026-06-10'},
+  events:[
+    {t:'planting', ts:Date.parse('2026-05-12T07:30')},
+    {t:'irrigation', ts:Date.parse('2026-05-14T06:00'), n:'Tưới tự động theo cảm biến độ ẩm đất'},
+    {t:'fertilizer', ts:Date.parse('2026-05-18T07:10'), m:'Phân hữu cơ vi sinh', d:'10 kg/sào'},
+    {t:'pest', ts:Date.parse('2026-05-26T06:40'), m:'Dầu Neem (hữu cơ)', d:'15 ml/10L', n:'Cách ly 1 ngày — tuân thủ'},
+    {t:'inspection', ts:Date.parse('2026-06-03T08:00'), n:'Đạt chuẩn thu hoạch, không phát hiện sâu bệnh'},
+    {t:'harvest', ts:Date.parse('2026-06-10T05:30'), n:'150 kg · đạt thời gian cách ly'}
+  ]
+};
+
+async function fetchGAS(code){
+  const ctrl = new AbortController();
+  const t = setTimeout(()=>ctrl.abort(), 6000);
+  try {
+    const r = await fetch(`${GAS_URL}?action=trace&code=${encodeURIComponent(code)}`, {signal: ctrl.signal});
+    clearTimeout(t);
+    if (!r.ok) return null;
+    const d = await r.json();
+    if (d && d.ok && d.lot) return d.lot;
+    return null;
+  } catch(e){ clearTimeout(t); return null; }
+}
+
+function render(lot, source){
+  const ev = (lot.events||[]).slice().sort((a,b)=>(a.ts||0)-(b.ts||0));
+  const harvested = !!(lot.harvest && lot.harvest.date);
+  const phiViolated = ev.some(e => (e.n||'').toLowerCase().includes('override'));
+  const badge = source==='server'
+    ? '<span class="badge ok">✓ Hồ sơ hợp lệ · Đã xác minh máy chủ</span>'
+    : source==='embedded'
+    ? '<span class="badge ok">✓ Hồ sơ hợp lệ · Dữ liệu trong tem QR</span>'
+    : '<span class="badge warn">◔ Hồ sơ mẫu (demo)</span>';
+
+  document.getElementById('app').innerHTML = `
+  ${source==='demo' ? '<div class="demo-note fade">Đây là hồ sơ minh hoạ. Quét tem QR trên sản phẩm thật để xem hồ sơ thật.</div>':''}
+  <div class="hero fade">
+    ${badge}
+    <h1>${esc(lot.crop||'Nông sản')}${lot.variety?' — <em>'+esc(lot.variety)+'</em>':''}</h1>
+    <div class="code">Mã lô: <b>${esc(lot.code||'-')}</b></div>
+    <div class="verify-line">🔒 Chuỗi sự kiện append-only — không chỉnh sửa được sau khi ghi</div>
+  </div>
+
+  <div class="card fade">
+    <h2>Thông tin lô</h2>
+    <div class="grid">
+      <div class="kv span2"><div class="k">Nông trại</div><div class="v">${esc(lot.farm||'-')}</div></div>
+      <div class="kv"><div class="k">Khu vực</div><div class="v">${esc(lot.zone||'-')}</div></div>
+      <div class="kv"><div class="k">Ngày xuống giống</div><div class="v">${esc(lot.planted||'-')}</div></div>
+      ${harvested?`
+      <div class="kv"><div class="k">Ngày thu hoạch</div><div class="v">${esc(lot.harvest.date)}</div></div>
+      <div class="kv"><div class="k">Sản lượng</div><div class="v">${esc(String(lot.harvest.qty||'-'))} ${esc(lot.harvest.unit||'')}</div></div>`:`
+      <div class="kv span2"><div class="k">Trạng thái</div><div class="v">🌿 Đang canh tác</div></div>`}
+    </div>
+    ${harvested ? (phiViolated
+      ? '<div class="phi-bad">⚠️ <span>Hồ sơ ghi nhận thu hoạch khi còn thời gian cách ly thuốc BVTV (đã được ghi rõ trong chuỗi sự kiện bên dưới).</span></div>'
+      : '<div class="phi-ok">🛡️ <span><b>An toàn thực phẩm:</b> lô này tuân thủ đầy đủ thời gian cách ly thuốc bảo vệ thực vật (PHI) trước thu hoạch.</span></div>') : ''}
+  </div>
+
+  <div class="card fade">
+    <h2>Hành trình canh tác · ${ev.length} sự kiện</h2>
+    <div class="tl">
+      ${ev.map(e=>{
+        const [ic,name] = LBL[e.t]||LBL.other;
+        return `<div class="ev ${e.t==='harvest'?'harvest':''}">
+          <div class="when">${esc(dt(e.ts))}</div>
+          <div class="what">${ic} ${esc(name)}</div>
+          ${e.m||e.d||e.n?`<div class="det">${e.m?'Vật tư: <b>'+esc(e.m)+'</b>':''}${e.d?' · '+esc(e.d):''}${e.n?(e.m||e.d?'<br/>':'')+esc(e.n):''}</div>`:''}
+        </div>`;
+      }).join('')}
+    </div>
+  </div>
+
+  <div class="card fade">
+    <h2>Cam kết EcoSynTech</h2>
+    <div class="pillars">
+      <div class="pill"><div class="ic">🔎</div><div class="t">Truy xuất<br/>tận gốc</div></div>
+      <div class="pill"><div class="ic">⚡</div><div class="t">Vận hành không<br/>gián đoạn</div></div>
+      <div class="pill"><div class="ic">♻️</div><div class="t">Tuần hoàn<br/>xanh</div></div>
+    </div>
+  </div>`;
+}
+
+function renderNotFound(code){
+  document.getElementById('app').innerHTML = `
+  <div class="state fade">
+    <div class="big">🔍</div>
+    <h2>Chưa tìm thấy hồ sơ${code?' cho mã <span style="color:var(--lime)">'+esc(code)+'</span>':''}</h2>
+    <p>Lô này có thể chưa được đồng bộ lên cloud, hoặc mã không đúng.<br/>
+    Vui lòng quét lại tem QR trên sản phẩm, hoặc liên hệ nơi bán.</p>
+    <p style="margin-top:14px"><a href="?demo=1" style="color:var(--lime)">Xem hồ sơ minh hoạ →</a></p>
+  </div>`;
+}
+
+(async function init(){
+  const q = new URLSearchParams(location.search);
+  const code = getCode();
+  const embedded = getEmbedded();
+
+  if (q.get('demo')) { render(DEMO,'demo'); return; }
+
+  if (!code && !embedded) { renderNotFound(''); return; }
+
+  // 1. Server verify (nếu GAS có action trace)
+  if (code) {
+    const lot = await fetchGAS(code);
+    if (lot) { render(lot,'server'); return; }
+  }
+  // 2. Payload nhúng trong QR
+  if (embedded && embedded.code) { render(embedded,'embedded'); return; }
+
+  renderNotFound(code);
+})();
+</script>
+</body>
+</html>

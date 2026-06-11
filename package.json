@@ -1,0 +1,50 @@
+{
+  "name": "ecosyntech-farmos-mobile",
+  "version": "4.0.0",
+  "description": "EcoSynTech Farm OS — Mobile App V4.0 (Plan gating + Rule Builder + Truy xuất nguồn gốc)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "cap:add:android": "cap add android",
+    "cap:sync": "cap sync android",
+    "cap:open:android": "cap open android",
+    "android:debug": "npm run build && cap sync android && cd android && ./gradlew assembleDebug",
+    "android:release": "npm run build && cap sync android && cd android && ./gradlew assembleRelease",
+    "android:bundle": "npm run build && cap sync android && cd android && ./gradlew bundleRelease",
+    "android:all": "npm run android:debug && npm run android:release && npm run android:bundle"
+  },
+  "dependencies": {
+    "@aparajita/capacitor-biometric-auth": "^8.0.0",
+    "@capacitor-mlkit/barcode-scanning": "^6.0.0",
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/app": "^6.0.1",
+    "@capacitor/background-runner": "^2.1.0",
+    "@capacitor/camera": "^6.1.0",
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/filesystem": "^6.0.1",
+    "@capacitor/geolocation": "^6.0.2",
+    "@capacitor/local-notifications": "^6.1.0",
+    "@capacitor/network": "^6.0.2",
+    "@capacitor/preferences": "^6.0.2",
+    "@capacitor/splash-screen": "^6.0.2",
+    "@capacitor/status-bar": "^6.0.1",
+    "alpinejs": "^3.14.1",
+    "capacitor-secure-storage-plugin": "^0.10.0",
+    "chart.js": "^4.4.4",
+    "idb-keyval": "^6.2.1",
+    "jspdf": "^2.5.1",
+    "qrcode-generator": "^2.0.4"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2",
+    "typescript": "^6.0.3",
+    "vite": "^5.4.8"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "Proprietary",
+  "author": "EcoSynTech Global · CEO Thuan"
+}

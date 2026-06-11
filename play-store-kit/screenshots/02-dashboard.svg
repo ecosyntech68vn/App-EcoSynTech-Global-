@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+  <rect width="1080" height="1920" fill="#F7F8F5"/>
+
+  <!-- Status bar -->
+  <rect x="0" y="0" width="1080" height="80" fill="#1B5E20"/>
+  <text x="60" y="55" font-family="Arial" font-size="32" fill="white" font-weight="700">14:25</text>
+  <text x="1020" y="55" text-anchor="end" font-family="Arial" font-size="28" fill="white">📶 🔋</text>
+
+  <!-- Header -->
+  <rect x="0" y="80" width="1080" height="120" fill="#2E7D32"/>
+  <text x="540" y="160" text-anchor="middle" font-family="Arial" font-size="46" font-weight="700" fill="white">📊 Sensor Dashboard</text>
+
+  <!-- Status row -->
+  <text x="60" y="260" font-family="Arial" font-size="28" fill="#5C6B6B">✓ Live · cập nhật 2s ago</text>
+  <text x="1020" y="260" text-anchor="end" font-family="Arial" font-size="28" font-weight="700" fill="#2E7D32">↻ Refresh</text>
+
+  <!-- Zone 1 card (OK) -->
+  <rect x="60" y="320" width="960" height="380" rx="24" fill="white"/>
+  <rect x="60" y="320" width="12" height="380" fill="#2E7D32"/>
+  <text x="120" y="390" font-family="Arial" font-size="44" font-weight="700" fill="#1A1A1A">Zone 1 — Cà chua</text>
+  <text x="960" y="390" text-anchor="end" font-family="Arial" font-size="32" fill="#5C6B6B">Z01</text>
+
+  <text x="120" y="490" font-family="Arial" font-size="22" font-weight="700" fill="#5C6B6B">🌡 TEMP</text>
+  <text x="120" y="555" font-family="Arial" font-size="60" font-weight="800" fill="#1A1A1A">26.5°C</text>
+
+  <text x="380" y="490" font-family="Arial" font-size="22" font-weight="700" fill="#5C6B6B">💧 HUM</text>
+  <text x="380" y="555" font-family="Arial" font-size="60" font-weight="800" fill="#1A1A1A">68%</text>
+
+  <text x="620" y="490" font-family="Arial" font-size="22" font-weight="700" fill="#5C6B6B">⚗ pH</text>
+  <text x="620" y="555" font-family="Arial" font-size="60" font-weight="800" fill="#1A1A1A">6.5</text>
+
+  <text x="820" y="490" font-family="Arial" font-size="22" font-weight="700" fill="#5C6B6B">⚡ EC</text>
+  <text x="820" y="555" font-family="Arial" font-size="60" font-weight="800" fill="#1A1A1A">1.8mS</text>
+
+  <text x="120" y="640" font-family="Arial" font-size="22" font-weight="700" fill="#5C6B6B">🌊 WATER</text>
+  <text x="120" y="690" font-family="Arial" font-size="44" font-weight="800" fill="#1A1A1A">78%</text>
+
+  <!-- Zone 2 card (Warning) -->
+  <rect x="60" y="730" width="960" height="380" rx="24" fill="white"/>
+  <rect x="60" y="730" width="12" height="380" fill="#F9A825"/>
+  <text x="120" y="800" font-family="Arial" font-size="44" font-weight="700" fill="#1A1A1A">Zone 2 — Xà lách</text>
+  <text x="960" y="800" text-anchor="end" font-family="Arial" font-size="32" fill="#5C6B6B">Z02</text>
+
+  <text x="120" y="900" font-family="Arial" font-size="22" font-weight="700" fill="#5C6B6B">🌡 TEMP</text>
+  <text x="120" y="965" font-family="Arial" font-size="60" font-weight="800" fill="#F9A825">35.2°C</text>
+
+  <text x="380" y="900" font-family="Arial" font-size="22" font-weight="700" fill="#5C6B6B">💧 HUM</text>
+  <text x="380" y="965" font-family="Arial" font-size="60" font-weight="800" fill="#1A1A1A">52%</text>
+
+  <text x="620" y="900" font-family="Arial" font-size="22" font-weight="700" fill="#5C6B6B">⚗ pH</text>
+  <text x="620" y="965" font-family="Arial" font-size="60" font-weight="800" fill="#1A1A1A">7.1</text>
+
+  <text x="820" y="900" font-family="Arial" font-size="22" font-weight="700" fill="#5C6B6B">⚡ EC</text>
+  <text x="820" y="965" font-family="Arial" font-size="60" font-weight="800" fill="#1A1A1A">1.5mS</text>
+
+  <!-- Zone 3 card (Critical) -->
+  <rect x="60" y="1140" width="960" height="320" rx="24" fill="white"/>
+  <rect x="60" y="1140" width="12" height="320" fill="#C62828"/>
+  <text x="120" y="1210" font-family="Arial" font-size="44" font-weight="700" fill="#1A1A1A">Zone 3 — Ớt chuông</text>
+  <text x="960" y="1210" text-anchor="end" font-family="Arial" font-size="32" fill="#C62828">⚠ CRITICAL</text>
+
+  <text x="120" y="1310" font-family="Arial" font-size="22" font-weight="700" fill="#5C6B6B">🌡 TEMP</text>
+  <text x="120" y="1380" font-family="Arial" font-size="60" font-weight="800" fill="#C62828">41.8°C</text>
+
+  <text x="380" y="1310" font-family="Arial" font-size="22" font-weight="700" fill="#5C6B6B">⚗ pH</text>
+  <text x="380" y="1380" font-family="Arial" font-size="60" font-weight="800" fill="#C62828">4.8</text>
+
+  <!-- Bottom nav -->
+  <rect x="0" y="1770" width="1080" height="150" fill="white"/>
+  <line x1="0" y1="1770" x2="1080" y2="1770" stroke="#E1E5DD" stroke-width="2"/>
+  <g font-family="Arial" font-size="22">
+    <text x="108" y="1830" text-anchor="middle" font-size="40">📊</text>
+    <text x="108" y="1870" text-anchor="middle" fill="#2E7D32" font-weight="700">Sensor</text>
+
+    <text x="324" y="1830" text-anchor="middle" font-size="40">🚨</text>
+    <text x="324" y="1870" text-anchor="middle" fill="#5C6B6B">Alert</text>
+
+    <text x="540" y="1830" text-anchor="middle" font-size="40">📝</text>
+    <text x="540" y="1870" text-anchor="middle" fill="#5C6B6B">Log</text>
+
+    <text x="756" y="1830" text-anchor="middle" font-size="40">✅</text>
+    <text x="756" y="1870" text-anchor="middle" fill="#5C6B6B">Task</text>
+
+    <text x="972" y="1830" text-anchor="middle" font-size="40">⚙️</text>
+    <text x="972" y="1870" text-anchor="middle" fill="#5C6B6B">Cài đặt</text>
+  </g>
+</svg>

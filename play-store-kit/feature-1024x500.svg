@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
+  <defs>
+    <linearGradient id="hero" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1B5E20"/>
+      <stop offset="60%" stop-color="#2E7D32"/>
+      <stop offset="100%" stop-color="#43A047"/>
+    </linearGradient>
+    <linearGradient id="gold2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E6C158"/>
+      <stop offset="100%" stop-color="#C9A227"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="500" fill="url(#hero)"/>
+
+  <!-- Decorative leaves -->
+  <g opacity="0.15" fill="#FFFFFF">
+    <path d="M850 50 C 950 80, 990 180, 960 280 C 930 350, 850 380, 800 350 C 850 320, 900 260, 920 180 C 900 220, 860 260, 810 280 C 780 220, 800 100, 850 50 Z"/>
+    <path d="M100 350 C 200 380, 240 480, 210 580 L 100 580 Z"/>
+  </g>
+
+  <!-- Logo circle -->
+  <circle cx="180" cy="250" r="100" fill="#FFFFFF" opacity="0.95"/>
+  <circle cx="180" cy="200" r="32" fill="none" stroke="url(#gold2)" stroke-width="5"/>
+  <circle cx="180" cy="200" r="12" fill="url(#gold2)"/>
+  <rect x="172" y="210" width="16" height="100" rx="8" fill="url(#gold2)"/>
+  <path d="M180 180 C 230 195, 260 240, 245 290 C 230 320, 195 330, 175 320 C 200 305, 220 280, 230 240 C 220 260, 200 280, 178 290 C 168 260, 165 210, 180 180 Z" fill="#4CAF50"/>
+
+  <!-- Headlines -->
+  <text x="330" y="180" font-family="Arial, sans-serif" font-size="56" font-weight="900" fill="#FFFFFF">EcoSynTech</text>
+  <text x="330" y="240" font-family="Arial, sans-serif" font-size="56" font-weight="900" fill="url(#gold2)">Farm OS</text>
+  <text x="330" y="295" font-family="Arial, sans-serif" font-size="22" font-weight="600" fill="#E8F5E9">Hệ điều hành nông nghiệp · Offline-first · Frugal</text>
+
+  <!-- Feature pills -->
+  <g font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#1B5E20">
+    <rect x="330" y="330" width="140" height="36" rx="18" fill="#E6C158"/>
+    <text x="400" y="354" text-anchor="middle">📊 Sensor</text>
+
+    <rect x="486" y="330" width="130" height="36" rx="18" fill="#E6C158"/>
+    <text x="551" y="354" text-anchor="middle">🚨 Alert</text>
+
+    <rect x="632" y="330" width="120" height="36" rx="18" fill="#E6C158"/>
+    <text x="692" y="354" text-anchor="middle">📝 Log</text>
+
+    <rect x="768" y="330" width="130" height="36" rx="18" fill="#E6C158"/>
+    <text x="833" y="354" text-anchor="middle">✅ Task</text>
+  </g>
+
+  <!-- Bottom tagline -->
+  <text x="330" y="420" font-family="Arial, sans-serif" font-size="16" font-style="italic" fill="#C8E6C9">An toàn · Tin cậy · Phục hồi · Đơn giản · Chi phí thấp</text>
+  <text x="330" y="455" font-family="Arial, sans-serif" font-size="14" font-weight="600" fill="#FFFFFF">EcoSynTech Global · Made in Vietnam · v1.0.0</text>
+</svg>

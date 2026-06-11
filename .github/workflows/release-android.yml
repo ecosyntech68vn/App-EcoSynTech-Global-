@@ -1,0 +1,160 @@
+name: Release Android APK/AAB
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g. v3.0.0)'
+        required: true
+        default: 'v3.0.0'
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-android:
+    name: Build signed APK + AAB
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 34
+          build-tools: 34.0.0
+
+      - name: Install deps
+        run: npm install --legacy-peer-deps --no-audit --no-fund
+
+      - name: Vite build
+        run: npm run build
+
+      - name: Add Capacitor Android platform
+        run: |
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
+
+      # V4: KHÔNG ghi đè manifest bằng template (template thiếu MainActivity → APK hỏng).
+      # Dùng patch script inject permissions + xml + versionCode.
+      - name: Patch Android project (permissions + xml + version)
+        run: node scripts/ci-patch-android.mjs
+
+      - name: Capacitor sync
+        run: npx cap sync android
+
+      - name: Decode Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::warning::KEYSTORE_BASE64 secret missing — will build unsigned release"
+          else
+            echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.keystore
+            echo "Keystore decoded: $(wc -c < android/app/release.keystore) bytes"
+          fi
+
+      - name: Build Debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Build Release APK (signed if secrets present)
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          cd android
+          if [ -f app/release.keystore ] && [ -n "$KEYSTORE_PASSWORD" ]; then
+            ./gradlew assembleRelease \
+              -Pandroid.injected.signing.store.file=$PWD/app/release.keystore \
+              -Pandroid.injected.signing.store.password="$KEYSTORE_PASSWORD" \
+              -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+              -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
+          else
+            ./gradlew assembleRelease
+          fi
+
+      - name: Build Release AAB (signed if secrets present)
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          cd android
+          if [ -f app/release.keystore ] && [ -n "$KEYSTORE_PASSWORD" ]; then
+            ./gradlew bundleRelease \
+              -Pandroid.injected.signing.store.file=$PWD/app/release.keystore \
+              -Pandroid.injected.signing.store.password="$KEYSTORE_PASSWORD" \
+              -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+              -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
+          else
+            ./gradlew bundleRelease
+          fi
+
+      - name: Rename artifacts with version tag
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          if [ -z "$VERSION" ] || [ "$VERSION" = "$GITHUB_REF" ]; then
+            VERSION="${{ inputs.version || 'v3.0.0-manual' }}"
+          fi
+          mkdir -p dist
+          cp android/app/build/outputs/apk/debug/app-debug.apk     dist/farmos-${VERSION}-debug.apk    || true
+          cp android/app/build/outputs/apk/release/app-release.apk dist/farmos-${VERSION}-release.apk  || true
+          cp android/app/build/outputs/apk/release/app-release-unsigned.apk dist/farmos-${VERSION}-release-unsigned.apk  || true
+          cp android/app/build/outputs/bundle/release/app-release.aab dist/farmos-${VERSION}-release.aab || true
+          ls -la dist/
+
+      - name: Upload artifacts (always)
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-builds-${{ github.ref_name }}
+          path: dist/*
+          retention-days: 30
+
+      - name: Create GitHub Release (on tag only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/farmos-*-debug.apk
+            dist/farmos-*-release.apk
+            dist/farmos-*-release-unsigned.apk
+            dist/farmos-*-release.aab
+          generate_release_notes: true
+          body: |
+            ## FarmOS Mobile ${{ github.ref_name }}
+
+            **Build:** `${{ github.sha }}`
+            **Date:** `${{ github.event.head_commit.timestamp }}`
+
+            ### Install
+            - **Phone:** download `farmos-*-release.apk` → cài
+            - **CH Play:** upload `farmos-*-release.aab` lên Play Console
+
+            ### Required Android version
+            - Min: Android 8.0 (API 26)
+            - Target: Android 14 (API 34)
+
+            ### Changelog
+            See auto-generated notes below.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

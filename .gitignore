@@ -1,0 +1,64 @@
+# SECRETS — tuyệt đối không commit (keystore, credentials)
+secrets/
+
+# Android project — CI tự sinh bằng `cap add` + scripts/ci-patch-android.mjs (KHÔNG commit)
+/android/
+_android_templates/
+
+# Node
+node_modules/
+npm-debug.log*
+.npm
+
+# Vite build outputs (CI rebuilds these)
+www/
+dist-web/
+
+# Vite temp build files
+vite.config.js.timestamp-*
+
+# Capacitor Android build outputs
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+android/captures/
+android/.idea/
+android/*.iml
+android/app/*.iml
+
+# Signed artifacts (NEVER commit)
+*.apk
+*.aab
+*.keystore
+*.jks
+keystore.properties
+android/app/key.properties
+android/app/release.keystore
+
+# Dist (CI artifacts — release via GitHub Releases)
+dist/*.apk
+dist/*.aab
+
+# IDE
+.vscode/
+.idea/
+*.iml
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env / secrets
+.env
+.env.local
+.env.production
+
+# Logs
+*.log
+logs/
+
+# Temp
+.tmp/
+.cache/
