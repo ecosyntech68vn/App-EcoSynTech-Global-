@@ -120,4 +120,26 @@ g = g.replace(/versionName\s+"[^"]*"/, 'versionName "' + VERSION_NAME + '"');
 writeFileSync(GRADLE, g);
 ok(`build.gradle → versionCode ${VERSION_CODE}, versionName "${VERSION_NAME}"`);
 
+// ===== 5. background-runner: Kotlin jvmTarget phải khớp Java 21 của module =====
+const ROOT_GRADLE = join(ROOT, 'android/build.gradle');
+if (existsSync(ROOT_GRADLE)) {
+  let rg = readFileSync(ROOT_GRADLE, 'utf8');
+  if (!rg.includes('V4 kotlin-jvm-target-fix')) {
+    rg += `
+// V4 kotlin-jvm-target-fix — background-runner build Java 21, ép Kotlin khớp
+subprojects { project ->
+    if (project.name == 'capacitor-background-runner') {
+        project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+            kotlinOptions.jvmTarget = '21'
+        }
+    }
+}
+`;
+    writeFileSync(ROOT_GRADLE, rg);
+    ok('android/build.gradle += kotlin jvmTarget 21 cho background-runner');
+  } else {
+    ok('kotlin jvmTarget fix đã có (skip)');
+  }
+}
+
 console.log('\n✅ Android project patched — sẵn sàng gradle build.');
