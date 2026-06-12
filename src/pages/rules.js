@@ -84,6 +84,29 @@ export async function renderRules() {
             <span style="align-self:center; font-size:13px; color:var(--c-text-muted);">lần/ngày</span>
           </div>
 
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:10px;">
+            <input type="checkbox" name="rainSkip" checked />
+            <span>🌧 <strong>Né mưa</strong> — xác suất mưa ≥ 60% thì không tưới</span>
+          </label>
+
+          <details style="margin-top:10px;">
+            <summary style="cursor:pointer; font-size:13px; color:var(--c-text-muted);">⚙ Nâng cao (khung giờ · nghỉ giữa 2 lần · ưu tiên)</summary>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+              <input name="timeFrom" type="time" value="05:00" style="flex:1;" />
+              <span style="align-self:center; font-size:13px; color:var(--c-text-muted);">→</span>
+              <input name="timeTo" type="time" value="18:00" style="flex:1;" />
+            </div>
+            <div style="display:flex; gap:8px; margin-top:6px;">
+              <input name="cooldownMin" type="number" min="5" max="720" value="30" style="flex:1;" />
+              <span style="align-self:center; font-size:13px; color:var(--c-text-muted);">phút nghỉ giữa 2 lần</span>
+              <select name="priority" style="flex:1;">
+                <option value="low">Ưu tiên thấp</option>
+                <option value="medium" selected>Ưu tiên vừa</option>
+                <option value="high">Ưu tiên cao</option>
+              </select>
+            </div>
+          </details>
+
           <button type="submit" class="btn" style="margin-top:14px;">Lưu quy tắc</button>
         </form>
       </details>
@@ -101,7 +124,8 @@ export async function renderRules() {
         </div>
         <div class="card-meta" style="margin-top:4px;">
           NẾU ${m.label} <strong>Zone ${esc(r.zoneId)}</strong> ${r.op === 'lt' ? '&lt;' : '&gt;'} <strong>${esc(String(r.threshold))}${m.unit}</strong><br/>
-          THÌ bật <strong>${esc(r.deviceId)}</strong> ${esc(String(r.durationMin))} phút · tối đa ${esc(String(r.maxPerDay))} lần/ngày
+          THÌ bật <strong>${esc(r.deviceId)}</strong> ${esc(String(r.durationMin))} phút · tối đa ${esc(String(r.maxPerDay))} lần/ngày<br/>
+          ${r.rainSkip ? '🌧 Né mưa ≥60% · ' : ''}⏰ ${esc(r.timeFrom || '05:00')}–${esc(r.timeTo || '18:00')} · nghỉ ${esc(String(r.cooldownMin || 30))}p · ưu tiên ${r.priority === 'high' ? 'cao' : r.priority === 'low' ? 'thấp' : 'vừa'}
         </div>
         <div class="card-meta">${r.synced ? '✓ Đã đồng bộ bộ điều khiển' : '⏳ Chờ đồng bộ khi kết nối'}</div>
         <div style="margin-top:8px; display:flex; gap:8px;">
@@ -155,16 +179,41 @@ window.wire_rules = function() {
     if (!(maxPerDay >= 1 && maxPerDay <= MAX_RUNS_PER_DAY)) {
       window.showToast?.(`✗ Tối đa ${MAX_RUNS_PER_DAY} lần/ngày`, 'err'); return;
     }
+    const cooldownMin = Math.min(720, Math.max(5, parseInt(fd.get('cooldownMin'), 10) || 30));
     const rule = {
       name: fd.get('name'), metric, zoneId: fd.get('zoneId'),
       op: fd.get('op'), threshold,
       deviceId: fd.get('deviceId'), action: 'on',
       durationMin, maxPerDay,
+      rainSkip: !!fd.get('rainSkip'),
+      timeFrom: fd.get('timeFrom') || '05:00',
+      timeTo: fd.get('timeTo') || '18:00',
+      cooldownMin,
+      priority: fd.get('priority') || 'medium',
       enabled: true, synced: false, createdAt: Date.now()
     };
     const id = `${PREFIX}${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     await set(id, rule);
-    await syncQueue.enqueue({ path: '/api/rules', method: 'POST', body: JSON.stringify({ clientRuleId: id, ...rule }) });
+    // Payload khớp schema WLC /api/rules (automation_rules: condition/action JSON + cooldown + timeWindow + priority)
+    const wlcPayload = {
+      clientRuleId: id,
+      name: rule.name,
+      description: `Tạo từ app mobile · Zone ${rule.zoneId}`,
+      type: 'STATIC',
+      enabled: true,
+      condition: {
+        metric: rule.metric, zoneId: rule.zoneId, op: rule.op, threshold: rule.threshold,
+        skipIfRainProbGte: rule.rainSkip ? 60 : null
+      },
+      action: {
+        type: 'device', deviceId: rule.deviceId, command: 'on',
+        durationMin: rule.durationMin, maxPerDay: rule.maxPerDay, priority: rule.priority
+      },
+      cooldownMinutes: rule.cooldownMin,
+      timeWindow: { from: rule.timeFrom, to: rule.timeTo },
+      targetDevice: rule.deviceId
+    };
+    await syncQueue.enqueue({ path: '/api/rules', method: 'POST', body: JSON.stringify(wlcPayload) });
     window.showToast?.('✓ Đã lưu — sẽ đồng bộ xuống bộ điều khiển', 'ok');
     nav();
   });
