@@ -135,6 +135,25 @@ window.appRoot = function () {
     _wireLogin() {
       const form = document.getElementById('login-form');
       if (!form) return;
+      // V4.0.1 — <script> trong renderLogin không chạy khi chèn qua innerHTML → wire tại đây
+      document.getElementById('login-mode')?.addEventListener('change', (e) => {
+        const row = document.getElementById('url-row');
+        if (row) row.style.display = (e.target.value === 'local') ? 'none' : '';
+      });
+      document.getElementById('test-conn')?.addEventListener('click', async () => {
+        const mode = document.getElementById('login-mode')?.value;
+        if (mode === 'local') { showToast('✓ Local mode — không cần server', 'ok'); return; }
+        const urlEl = document.querySelector('input[name=url]');
+        const url = urlEl ? urlEl.value.trim() : '';
+        if (!url) { showToast('Nhập URL trước khi test', 'err'); return; }
+        const btn = document.getElementById('test-conn');
+        btn.disabled = true; btn.textContent = 'Đang test...';
+        try {
+          const r = await fetch(url.replace(/\/$/, '') + '/api/health');
+          showToast(r.ok ? '✓ Kết nối OK' : '✗ HTTP ' + r.status, r.ok ? 'ok' : 'err');
+        } catch (e) { showToast('✗ ' + e.message, 'err'); }
+        finally { btn.disabled = false; btn.textContent = 'Test kết nối'; }
+      });
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const pin = form.pin.value.trim();
@@ -183,3 +202,15 @@ window.appRoot = function () {
 };
 
 Alpine.start();
+
+// V4.0.1 HOTFIX — Alpine 3 đã bỏ API `__x` (của Alpine 2), trong khi toàn bộ
+// onclick trong các trang dùng document.querySelector('[x-data]').__x.$data.nav(...).
+// Shim getter này làm sống lại tất cả mà không phải sửa từng file.
+(function () {
+  const appEl = document.getElementById('app');
+  if (appEl && !Object.getOwnPropertyDescriptor(appEl, '__x')) {
+    Object.defineProperty(appEl, '__x', {
+      get() { return { $data: Alpine.$data(appEl) }; }
+    });
+  }
+})();
