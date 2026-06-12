@@ -127,10 +127,11 @@ if (existsSync(ROOT_GRADLE)) {
   if (!rg.includes('V4 kotlin-jvm-target-fix')) {
     rg += `
 // V4 kotlin-jvm-target-fix — background-runner build Java 21, ép Kotlin khớp
+// (match theo tên task, không tham chiếu class Kotlin để root project evaluate được)
 subprojects { project ->
     if (project.name == 'capacitor-background-runner') {
-        project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-            kotlinOptions.jvmTarget = '21'
+        project.tasks.matching { it.name.startsWith('compile') && it.name.contains('Kotlin') }.configureEach { t ->
+            t.kotlinOptions.jvmTarget = '21'
         }
     }
 }
