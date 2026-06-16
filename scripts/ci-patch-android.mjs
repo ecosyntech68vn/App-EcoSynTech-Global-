@@ -6,7 +6,7 @@
 //  2. Thêm android:networkSecurityConfig + FileProvider vào <application>
 //  3. Copy file_paths.xml + network_security_config.xml từ android-templates/ vào res/xml/
 //  4. Set versionCode 40 / versionName "4.0.0" trong android/app/build.gradle
-import { readFileSync, writeFileSync, copyFileSync, mkdirSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, copyFileSync, mkdirSync, existsSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 
 const ROOT = process.cwd();
@@ -122,6 +122,27 @@ g = g.replace(/versionCode\s+\d+/, 'versionCode ' + VERSION_CODE);
 g = g.replace(/versionName\s+"[^"]*"/, 'versionName "' + VERSION_NAME + '"');
 writeFileSync(GRADLE, g);
 ok(`build.gradle → versionCode ${VERSION_CODE}, versionName "${VERSION_NAME}"`);
+
+// ===== App icon (V5) — dùng resources/icon.png nếu có =====
+const ICON_SRC = join(ROOT, 'resources/icon.png');
+if (existsSync(ICON_SRC)) {
+  const RES = join(ROOT, 'android/app/src/main/res');
+  for (const d of ['mipmap-mdpi', 'mipmap-hdpi', 'mipmap-xhdpi', 'mipmap-xxhdpi', 'mipmap-xxxhdpi']) {
+    const dir = join(RES, d);
+    if (!existsSync(dir)) continue;
+    for (const n of ['ic_launcher.png', 'ic_launcher_round.png', 'ic_launcher_foreground.png']) {
+      try { copyFileSync(ICON_SRC, join(dir, n)); } catch (_) {}
+    }
+  }
+  // Bỏ adaptive-icon XML → dùng PNG đầy đủ (đúng thiết kế icon vuông bo góc)
+  for (const x of ['mipmap-anydpi-v26/ic_launcher.xml', 'mipmap-anydpi-v26/ic_launcher_round.xml']) {
+    const p = join(RES, x);
+    try { if (existsSync(p)) unlinkSync(p); } catch (_) {}
+  }
+  ok('App icon ← resources/icon.png');
+} else {
+  console.warn('⚠ Chưa có resources/icon.png — giữ icon mặc định Capacitor (đặt file vào để đổi icon).');
+}
 
 // ===== 5. background-runner: Kotlin jvmTarget phải khớp Java 21 của module =====
 const ROOT_GRADLE = join(ROOT, 'android/build.gradle');

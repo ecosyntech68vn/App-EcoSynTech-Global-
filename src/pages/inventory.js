@@ -46,7 +46,11 @@ export async function renderInventory() {
             </div>
             <div class="card-meta">Lô: <strong>${escapeHtml(f.lotCode)}</strong>${f.harvestDate ? ' · TH ' + escapeHtml(f.harvestDate) : ''}${f.trace && f.trace.puc ? ' · PUC ' + escapeHtml(f.trace.puc) : ''}</div>
             ${std ? `<div style="margin-top:4px;">${std}</div>` : ''}
-            ${f.qty > 0 ? `<button data-fg-issue="${escapeHtml(f.id)}" class="btn secondary" style="margin-top:8px; padding:6px 14px; font-size:13px;">⬆ Xuất bán / giao</button>` : ''}
+            <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
+              <button data-fg-in="${escapeHtml(f.id)}" class="btn secondary" style="padding:6px 12px; font-size:13px;">⬇ Nhập</button>
+              ${f.qty > 0 ? `<button data-fg-issue="${escapeHtml(f.id)}" class="btn secondary" style="padding:6px 12px; font-size:13px;">⬆ Xuất bán</button>` : ''}
+              ${f.qty > 0 ? `<button data-fg-xfer="${escapeHtml(f.id)}" class="btn secondary" style="padding:6px 12px; font-size:13px;">↔ Chuyển CN</button>` : ''}
+            </div>
           </div>`;
         }).join('')}
 
@@ -65,9 +69,10 @@ export async function renderInventory() {
         </div>
         <div class="row" style="margin-top:6px; align-items:center;">
           <div class="card-meta">${TYPE_LBL[m.type] || m.type}${m.phiDays > 0 ? ' · PHI ' + m.phiDays + 'd' : ''}</div>
-          <div style="display:flex; gap:6px;">
-            <button data-mat-adj="${escapeHtml(m.id)}" data-d="-1" style="padding:2px 10px; border:1px solid var(--c-border); border-radius:6px; background:none;">−</button>
-            <button data-mat-adj="${escapeHtml(m.id)}" data-d="1" style="padding:2px 10px; border:1px solid var(--c-border); border-radius:6px; background:none;">＋</button>
+          <div style="display:flex; gap:5px;" data-mid="${escapeHtml(m.id)}" data-name="${escapeHtml(m.name)}" data-unit="${escapeHtml(st.unit || '')}">
+            <button class="mat-in" style="padding:3px 10px; border:1px solid var(--c-border); border-radius:6px; background:none; font-size:12px;">⬇ Nhập</button>
+            <button class="mat-out" style="padding:3px 10px; border:1px solid var(--c-border); border-radius:6px; background:none; font-size:12px;">⬆ Xuất</button>
+            <button class="mat-xfer" style="padding:3px 10px; border:1px solid var(--c-border); border-radius:6px; background:none; font-size:12px;">↔ Chuyển</button>
           </div>
         </div>
       </div>`;
@@ -90,18 +95,44 @@ export async function renderInventory() {
 window.wire_inventory = function() {
   const nav = () => document.querySelector('[x-data]').__x.$data.nav('inventory');
 
+  // ===== Thành phẩm: Nhập / Xuất / Chuyển =====
+  document.querySelectorAll('[data-fg-in]').forEach(b => b.addEventListener('click', async () => {
+    const q = prompt('Số lượng NHẬP kho:'); if (!q) return;
+    await inventoryStore.importFinished(b.dataset.fgIn, q, prompt('Ghi chú (nguồn nhập):') || '');
+    window.showToast?.('✓ Đã nhập kho thành phẩm', 'ok'); nav();
+  }));
   document.querySelectorAll('[data-fg-issue]').forEach(b => b.addEventListener('click', async () => {
-    const id = b.dataset.fgIssue;
-    const qty = prompt('Số lượng xuất (bán/giao):');
-    if (qty == null || qty === '') return;
-    const note = prompt('Ghi chú (khách hàng / phiếu giao):') || '';
-    await inventoryStore.issueFinished(id, qty, note);
-    window.showToast?.('✓ Đã xuất kho thành phẩm', 'ok');
-    nav();
+    const q = prompt('Số lượng XUẤT (bán/giao):'); if (!q) return;
+    await inventoryStore.issueFinished(b.dataset.fgIssue, q, prompt('Ghi chú (khách / phiếu giao):') || '');
+    window.showToast?.('✓ Đã xuất kho', 'ok'); nav();
+  }));
+  document.querySelectorAll('[data-fg-xfer]').forEach(b => b.addEventListener('click', async () => {
+    const q = prompt('Số lượng CHUYỂN:'); if (!q) return;
+    const to = prompt('Chuyển đến chi nhánh / trang trại:'); if (!to) return;
+    await inventoryStore.transferFinished(b.dataset.fgXfer, q, to, '');
+    window.showToast?.('✓ Đã ghi chuyển chi nhánh', 'ok'); nav();
   }));
 
-  document.querySelectorAll('[data-mat-adj]').forEach(b => b.addEventListener('click', async () => {
-    await materialsStore.adjustStock(b.dataset.matAdj, Number(b.dataset.d));
-    nav();
+  // ===== Vật tư: Nhập / Xuất / Chuyển (lấy id/name/unit từ div cha) =====
+  const raw = (sel, fn) => document.querySelectorAll(sel).forEach(btn => btn.addEventListener('click', async () => {
+    const d = btn.parentElement.dataset;
+    if (await fn(d.mid, d.name, d.unit) !== false) nav();
   }));
+  raw('.mat-in', async (id, name, unit) => {
+    const q = prompt('Số lượng NHẬP:'); if (!q) return false;
+    await materialsStore.adjustStock(id, Math.abs(parseFloat(q) || 0));
+    await inventoryStore._move({ kind: 'raw', itemId: id, itemName: name, type: 'import', qty: parseFloat(q) || 0, unit, note: 'Nhập kho' });
+  });
+  raw('.mat-out', async (id, name, unit) => {
+    const q = prompt('Số lượng XUẤT:'); if (!q) return false;
+    await materialsStore.adjustStock(id, -Math.abs(parseFloat(q) || 0));
+    await inventoryStore._move({ kind: 'raw', itemId: id, itemName: name, type: 'export', qty: parseFloat(q) || 0, unit, note: prompt('Lý do xuất:') || 'Xuất kho' });
+  });
+  raw('.mat-xfer', async (id, name, unit) => {
+    const q = prompt('Số lượng CHUYỂN:'); if (!q) return false;
+    const to = prompt('Chuyển đến chi nhánh / trang trại:'); if (!to) return false;
+    await materialsStore.adjustStock(id, -Math.abs(parseFloat(q) || 0));
+    await inventoryStore.transferRaw(id, name, q, unit, to, '');
+    window.showToast?.('✓ Đã chuyển chi nhánh', 'ok');
+  });
 };

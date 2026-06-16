@@ -136,7 +136,36 @@ export const inventoryStore = {
     await this._move({ kind: 'finished', itemId, itemName: it.name, type: 'export', qty: q, unit: it.unit, note: note || 'Xuất bán' });
     return it;
   },
+  // Nhập thêm thành phẩm thủ công (+qty)
+  async importFinished(itemId, qty, note) {
+    const arr = await this.finishedList();
+    const it = arr.find(f => f.id === itemId);
+    if (!it) return null;
+    const q = parseFloat(qty) || 0;
+    it.qty = (parseFloat(it.qty) || 0) + q;
+    if (it.qty > 0) it.status = 'in_stock';
+    await set(FINI_KEY, arr);
+    await this._move({ kind: 'finished', itemId, itemName: it.name, type: 'import', qty: q, unit: it.unit, note: note || 'Nhập kho' });
+    return it;
+  },
+  // Chuyển chi nhánh / trang trại khác (transfer) — ghi from→to, cập nhật vị trí item
+  async transferFinished(itemId, qty, toFarm, note) {
+    const arr = await this.finishedList();
+    const it = arr.find(f => f.id === itemId);
+    if (!it) return null;
+    const q = parseFloat(qty) || 0;
+    const from = it.farmId || lotStore_currentFarm();
+    if (q >= (parseFloat(it.qty) || 0)) it.farmId = toFarm;  // chuyển toàn bộ → đổi vị trí
+    await set(FINI_KEY, arr);
+    await this._move({ kind: 'finished', itemId, itemName: it.name, type: 'transfer', qty: q, unit: it.unit, from, to: toFarm, note: note || ('Chuyển → ' + toFarm) });
+    return it;
+  },
+  // Ghi chuyển chi nhánh cho VẬT TƯ (catalog dùng chung → ghi audit chuyển động)
+  async transferRaw(matId, matName, qty, unit, toFarm, note) {
+    await this._move({ kind: 'raw', itemId: matId, itemName: matName, type: 'transfer', qty: parseFloat(qty) || 0, unit: unit || '', to: toFarm, note: note || ('Chuyển → ' + toFarm) });
+  },
 };
+function lotStore_currentFarm() { try { return authStore.activeFarmId || '(hiện tại)'; } catch (_) { return '(hiện tại)'; } }
 
 // ===== Lô / Mùa vụ =====
 function pad2(n) { return String(n).padStart(2, '0'); }
