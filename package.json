@@ -1,7 +1,7 @@
 {
   "name": "ecosyntech-farmos-mobile",
-  "version": "5.1.0",
-  "description": "EcoSynTech Farm OS — Mobile App V5.1.0 (Kho ERP: nhập–xuất–tồn có chứng từ + tồn an toàn + export/import CSV; truy xuất chuẩn GS1/VietGAP/EU/JGAP; điều khiển phần cứng)",
+  "version": "5.2.0",
+  "description": "EcoSynTech Farm OS — Mobile App V5.2.0 (Tưới thông minh 4 chế độ khớp web v6.1: cảm biến/lịch/lịch+cảm biến/theo cây ETo·Kc + khung giờ tránh trưa; Kho ERP nhập–xuất–tồn + CSV; truy xuất GS1/VietGAP/EU/JGAP)",
   "type": "module",
   "scripts": {
     "dev": "vite",

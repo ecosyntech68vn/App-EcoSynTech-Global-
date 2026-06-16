@@ -16,7 +16,7 @@ export async function renderMore() {
     <h3 style="padding:14px 16px 4px; color:var(--c-text-muted); font-size:13px; text-transform:uppercase;">V1.1 — Core+</h3>
     ${menuItem('control', '⚡', 'Điều khiển thiết bị', '2-step confirm')}
     ${menuItem('schedule', '⏰', 'Lịch tưới / bón', 'Auto schedule')}
-    ${menuItem('rules', '💧', 'Tưới thông minh', 'Theo mùa · cảm biến · tự chạy')}
+    ${menuItem('rules', '💧', 'Tưới thông minh', '4 chế độ · ETo/Kc theo cây · khung giờ tránh trưa')}
     ${menuItem('chart', '📈', 'Biểu đồ lịch sử', '24h/7d/30d')}
 
     <h3 style="padding:14px 16px 4px; color:var(--c-text-muted); font-size:13px; text-transform:uppercase;">V1.2 — Smart</h3>
@@ -43,7 +43,7 @@ export async function renderMore() {
     </div>
 
     <div style="text-align:center; padding:20px; color:var(--c-text-muted); font-size:12px;">
-      EcoSynTech Farm OS v5.1.0 · Truy xuất chuẩn (GS1/VietGAP/EU/JGAP) + Kho ERP nhập–xuất–tồn (chứng từ · CSV) + Điều khiển thiết bị
+      EcoSynTech Farm OS v5.2.0 · Tưới thông minh 4 chế độ (ETo/Kc) + Kho ERP (chứng từ · CSV) + Truy xuất GS1/VietGAP/EU/JGAP + Điều khiển thiết bị
     </div>
   `;
 }

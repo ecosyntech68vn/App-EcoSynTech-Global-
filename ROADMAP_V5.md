@@ -57,6 +57,19 @@ Baseline đã verify: web build **xanh** (vite OK), 3 workflow CI sẵn sàng.
 
 ---
 
+## V5.2 — Tưới thông minh khớp Web Local v6.1 (ĐÃ LÀM)
+- App = SOẠN cấu hình; WLC/bộ điều khiển = THỰC THI (fuzzy/ETo/Kc/GA chạy ở controller, KHÔNG nhồi vào điện thoại).
+- 4 chế độ: `comparison` / `schedule` / `schedule_and_condition` / `crop` (ETo·Kc theo cây + giai đoạn).
+- Khung giờ nhiều slot (sáng 6-9h + chiều 16-18h) ⇒ tự tránh tưới trưa nắng (không cần rule "cấm trưa" riêng).
+- Ẩm min/target/max + 10 hồ sơ cây seed (khớp crop_profiles WLC).
+- **THAY ĐỔI PROTOCOL/SYNC (impact):** app đổi từ `/api/rules` (cũ) sang schema web thật:
+  - rule cảm biến/lịch → `POST /api/automation/rules` (body: rule_id, zone_id, trigger{type,sensor,operator,value | schedule{startHour,endHour,days} | schedule_and_condition}, action{target,command:on_for,durationSec}, constraints{windows[],maxPerDay}, cooldown_sec, priority).
+  - chế độ theo cây → `POST /api/irrigation/zones` (zone_id, site_id, crop_id, relay_pin) + `POST /api/irrigation/crops` (nếu sửa ẩm). Xoá: `DELETE …/:id`.
+  - Backend WLC v6.1 đã có sẵn các route này (đã đọc trong repo) → khi WLC online là chạy thẳng; offline thì app queue idempotent.
+  - Cascading: WLC giữ nguyên (không sửa); GAS/firmware không ảnh hưởng (firmware vẫn nhận lệnh qua command queue / MQTT).
+
+---
+
 ## Phụ thuộc & rủi ro
 - **Phase 1** cần chốt giao thức MQTT/BLE với FW9.4 (đọc FW để khớp topic).
 - **Phase 3** cần quyết hạ tầng cloud trước khi code backend — đây là phần "nặng" nhất, cần chi phí vận hành.

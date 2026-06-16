@@ -248,8 +248,19 @@ window.wire_inventory = function () {
     const f = fileInput.files && fileInput.files[0]; if (!f) return;
     try {
       const text = await f.text();
-      const n = await importCsv(text);
-      toast(`✓ Đã nhập ${n} dòng từ CSV`, 'ok'); nav();
+      const done = await importCsv(text);
+      // Hiện bảng kết quả rõ ràng (thay cho toast thoáng qua)
+      openModal(`
+        <div style="font-weight:700; font-size:17px;">✓ Đã nhập ${done.length} dòng từ CSV</div>
+        <div style="color:var(--c-text-muted); font-size:13px; margin:4px 0 10px;">Đã ghi chứng từ NHẬP cho các vật tư sau:</div>
+        <div style="max-height:50vh; overflow:auto;">
+          ${done.map((r, i) => `<div class="row" style="padding:8px 0; border-bottom:1px solid var(--c-border);">
+            <div><strong>${i + 1}. ${esc(r.name)}</strong>${r.created ? ' <span class="pill completed" style="font-size:10px;">mới</span>' : ''}</div>
+            <div style="font-weight:700; color:#2E7D32;">+${fmt(r.qty)} ${esc(r.unit || '')}</div>
+          </div>`).join('')}
+        </div>
+        <button type="button" class="btn inv-cancel" style="margin-top:14px; width:100%;">Xong</button>`);
+      document.querySelector('.inv-cancel')?.addEventListener('click', () => { closeModal(); nav(); });
     } catch (err) { toast('✗ Lỗi đọc CSV: ' + err.message, 'err'); }
     fileInput.value = '';
   });
@@ -346,24 +357,25 @@ async function importCsv(text) {
   if (ci.name < 0 || ci.qty < 0) throw new Error('Thiếu cột Ten hoặc SoLuong');
   const mats = await materialsStore.list();
   const byName = {}; mats.forEach(m => byName[m.name.trim().toLowerCase()] = m);
-  let n = 0;
+  const done = [];
   for (let r = 1; r < rows.length; r++) {
     const c = rows[r];
     const name = (c[ci.name] || '').trim(); if (!name) continue;
     const qty = parseFloat(c[ci.qty]); if (!(qty > 0)) continue;
     const unit = ci.unit >= 0 ? (c[ci.unit] || '').trim() : '';
-    let mat = byName[name.toLowerCase()];
+    let mat = byName[name.toLowerCase()]; let created = false;
     if (!mat) {
       mat = await materialsStore.add({ name, type: ci.type >= 0 ? ((c[ci.type] || 'other').trim() || 'other') : 'other', phiDays: 0, stockUnit: unit });
-      byName[name.toLowerCase()] = mat;
+      byName[name.toLowerCase()] = mat; created = true;
     }
+    const u = unit || (mat.stock && mat.stock.unit) || '';
     await inventoryStore.post({
-      kind: 'raw', itemId: mat.id, itemName: mat.name, type: 'import', qty, unit: unit || (mat.stock && mat.stock.unit) || '',
+      kind: 'raw', itemId: mat.id, itemName: mat.name, type: 'import', qty, unit: u,
       doc: { docDate: (ci.date >= 0 && c[ci.date]) ? c[ci.date].trim() : today(), party: ci.ncc >= 0 ? (c[ci.ncc] || '').trim() : '', origin: ci.origin >= 0 ? (c[ci.origin] || '').trim() : '' },
       note: 'Nhập từ CSV' + (ci.note >= 0 && c[ci.note] ? ' · ' + c[ci.note].trim() : '')
     });
-    n++;
+    done.push({ name: mat.name, qty, unit: u, created });
   }
-  if (n === 0) throw new Error('Không có dòng hợp lệ (cần Ten + SoLuong>0)');
-  return n;
+  if (done.length === 0) throw new Error('Không có dòng hợp lệ (cần Ten + SoLuong>0)');
+  return done;
 }
