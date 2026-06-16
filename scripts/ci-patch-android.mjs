@@ -15,8 +15,11 @@ const GRADLE = join(ROOT, 'android/app/build.gradle');
 const RES_XML = join(ROOT, 'android/app/src/main/res/xml');
 const TPL = join(ROOT, 'android-templates');
 
-const VERSION_CODE = 40;
-const VERSION_NAME = '4.0.0';
+// V5: version đọc tự động từ package.json — 1 nguồn duy nhất, bump chỉ sửa package.json
+const PKG = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+const VERSION_NAME = PKG.version;                         // vd "5.0.0"
+const [_maj, _min] = VERSION_NAME.split('.').map(Number);
+const VERSION_CODE = _maj * 10 + (_min || 0);            // 5.0.0 → 50 (giữ scheme 30/40/50)
 
 const PERMISSIONS = `
     <!-- V4.0 injected by ci-patch-android.mjs -->

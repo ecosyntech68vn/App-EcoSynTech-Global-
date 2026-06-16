@@ -37,7 +37,7 @@ jobs:
       - name: Add Capacitor Android platform (fresh)
         run: npx cap add android
 
-      - name: Patch Android project (permissions + xml + version 4.0.0)
+      - name: Patch Android project (permissions + xml + version from package.json)
         run: node scripts/ci-patch-android.mjs
 
       - name: Capacitor sync
@@ -52,12 +52,12 @@ jobs:
       - name: Collect APK
         run: |
           mkdir -p dist
-          cp android/app/build/outputs/apk/debug/app-debug.apk dist/farmos-v4.0.0-debug.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk dist/farmos-v5.0.0-debug.apk
           ls -la dist/
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: farmos-v4.0.0-debug-apk
-          path: dist/farmos-v4.0.0-debug.apk
+          name: farmos-v5.0.0-debug-apk
+          path: dist/farmos-v5.0.0-debug.apk
           retention-days: 30
