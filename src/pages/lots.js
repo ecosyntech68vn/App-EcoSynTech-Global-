@@ -37,6 +37,52 @@ async function renderLotList() {
           <input name="plantedAt" type="date" value="${new Date().toISOString().slice(0,10)}" />
           <label>Ghi chú</label>
           <textarea name="note" placeholder="Nguồn giống, xử lý đất..."></textarea>
+
+          <details style="margin-top:10px; border:1px solid #ddd; border-radius:8px; padding:10px;">
+            <summary style="cursor:pointer; font-weight:600; font-size:13px; list-style:none;">📋 Hồ sơ chuẩn truy xuất / xuất khẩu — GS1 · VietGAP · EU · Nhật (tuỳ chọn)</summary>
+            <p style="font-size:12px; color:var(--c-text-muted); margin:6px 0;">Điền nếu cần tem chuẩn quốc tế hoặc xuất khẩu. Bỏ trống vẫn tạo lô bình thường.</p>
+
+            <label>Chuẩn áp dụng</label>
+            <div style="display:flex; flex-wrap:wrap; gap:6px 14px; margin:4px 0 8px;">
+              ${['VietGAP','GlobalGAP','EU-Organic','JGAP/JAS'].map(s => `
+              <label style="display:flex; align-items:center; gap:4px; font-weight:400;">
+                <input type="checkbox" name="std" value="${s}" /> ${s}</label>`).join('')}
+            </div>
+
+            <label>Mã số vùng trồng (PUC — VietGAP / Cục BVTV)</label>
+            <input name="puc" placeholder="VD: VN-TQ-0123 (bắt buộc khi xuất khẩu)" />
+
+            <label>Thị trường đích</label>
+            <select name="market">
+              <option value="">— Chọn —</option>
+              <option value="noi-dia">Nội địa</option>
+              <option value="EU">EU</option>
+              <option value="JP">Nhật Bản</option>
+              <option value="US">Mỹ</option>
+              <option value="CN">Trung Quốc</option>
+            </select>
+
+            <label>GTIN sản phẩm (GS1)</label>
+            <input name="gtin" inputmode="numeric" placeholder="Mã sản phẩm toàn cầu 8–14 số" />
+            <label>GLN cơ sở (GS1)</label>
+            <input name="gln" inputmode="numeric" placeholder="Mã địa điểm toàn cầu 13 số" />
+
+            <label>Cơ sở sản xuất</label>
+            <input name="producer" placeholder="Tên HTX / trang trại" />
+            <label>Địa chỉ vùng trồng</label>
+            <input name="address" placeholder="Thôn, xã, huyện, tỉnh" />
+
+            <label>Số giấy chứng nhận GAP</label>
+            <input name="certNo" placeholder="Số GCN" />
+            <label>Tổ chức chứng nhận</label>
+            <input name="certBody" placeholder="VD: Vinacert, Control Union, JONA" />
+            <label>Chứng nhận hết hạn</label>
+            <input name="certExpiry" type="date" />
+
+            <label>Nguồn giống (truy xuất ngược — EU 178/2002)</label>
+            <input name="seedSource" placeholder="Nhà cung cấp giống + số lô giống" />
+          </details>
+
           <button type="submit" class="btn" style="margin-top:10px;">Tạo lô</button>
         </form>
       </details>
@@ -84,6 +130,19 @@ async function renderLotDetail(lotId) {
       <div class="card-meta">Xuống giống: ${escapeHtml(lot.plantedAt)} · ${events.length} sự kiện đã ghi</div>
       ${lot.note ? `<p style="margin:6px 0 0; font-size:13px;">${escapeHtml(lot.note)}</p>` : ''}
     </div>
+
+    ${(lot.trace && (lot.trace.puc || (lot.trace.standards||[]).length || lot.trace.gtin || lot.trace.gln || lot.trace.producer || lot.trace.certNo || lot.trace.market || lot.trace.seedSource)) ? `
+    <div class="card">
+      <div class="card-title">📋 Hồ sơ chuẩn truy xuất</div>
+      ${(lot.trace.standards||[]).length ? `<div style="margin:6px 0;">${lot.trace.standards.map(s=>`<span class="pill completed" style="margin-right:4px;">${escapeHtml(s)}</span>`).join('')}</div>` : ''}
+      ${lot.trace.puc ? `<div class="card-meta">Mã vùng trồng (PUC): <strong>${escapeHtml(lot.trace.puc)}</strong></div>` : ''}
+      ${lot.trace.market ? `<div class="card-meta">Thị trường đích: <strong>${escapeHtml(lot.trace.market)}</strong></div>` : ''}
+      ${lot.trace.gtin ? `<div class="card-meta">GTIN (GS1): ${escapeHtml(lot.trace.gtin)}</div>` : ''}
+      ${lot.trace.gln ? `<div class="card-meta">GLN (GS1): ${escapeHtml(lot.trace.gln)}</div>` : ''}
+      ${lot.trace.producer ? `<div class="card-meta">Cơ sở: ${escapeHtml(lot.trace.producer)}${lot.trace.address ? ' — ' + escapeHtml(lot.trace.address) : ''}</div>` : ''}
+      ${lot.trace.certNo ? `<div class="card-meta">Chứng nhận: ${escapeHtml(lot.trace.certNo)}${lot.trace.certBody ? ' (' + escapeHtml(lot.trace.certBody) + ')' : ''}${lot.trace.certExpiry ? ' · HSD ' + escapeHtml(lot.trace.certExpiry) : ''}</div>` : ''}
+      ${lot.trace.seedSource ? `<div class="card-meta">Nguồn giống: ${escapeHtml(lot.trace.seedSource)}</div>` : ''}
+    </div>` : ''}
 
     ${phi.locked ? `
     <div class="card crit">
@@ -187,7 +246,14 @@ window.wire_lots = function() {
       }
       const lot = await lotStore.create({
         crop: fd.get('crop'), variety: fd.get('variety'), zoneId: fd.get('zoneId'),
-        area: fd.get('area'), plantedAt: fd.get('plantedAt'), note: fd.get('note')
+        area: fd.get('area'), plantedAt: fd.get('plantedAt'), note: fd.get('note'),
+        trace: {
+          standards: fd.getAll('std'),
+          puc: fd.get('puc'), gtin: fd.get('gtin'), gln: fd.get('gln'),
+          producer: fd.get('producer'), address: fd.get('address'),
+          certNo: fd.get('certNo'), certBody: fd.get('certBody'), certExpiry: fd.get('certExpiry'),
+          market: fd.get('market'), seedSource: fd.get('seedSource'),
+        }
       });
       window.showToast?.(`✓ Đã tạo lô ${lot.code}`, 'ok');
       currentLotId = lot.id;
@@ -281,7 +347,7 @@ async function exportTracePdf(lot, events) {
   const { jsPDF } = await import('jspdf');
   const W = 1000;
   const lineH = 34;
-  const rows = 14 + events.length;
+  const rows = 14 + 9 + events.length; // +9 cho hồ sơ chuẩn (GS1/VietGAP/EU/Nhật)
   const H = Math.max(1414, 320 + rows * lineH + 320);
   const cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
@@ -308,6 +374,17 @@ async function exportTracePdf(lot, events) {
   line('Nông trại / Zone', `${lot.farmId}${lot.zoneId ? ' / ' + lot.zoneId : ''}`);
   line('Diện tích', lot.area || '-');
   line('Ngày xuống giống', lot.plantedAt);
+  if (lot.trace) {
+    const tr = lot.trace;
+    if ((tr.standards || []).length) line('Chuẩn áp dụng', tr.standards.join(', '), true);
+    if (tr.puc) line('Mã vùng trồng (PUC)', tr.puc, true);
+    if (tr.market) line('Thị trường đích', tr.market);
+    if (tr.gtin) line('GTIN (GS1)', tr.gtin);
+    if (tr.gln) line('GLN (GS1)', tr.gln);
+    if (tr.producer) line('Cơ sở sản xuất', tr.producer + (tr.address ? ' — ' + tr.address : ''));
+    if (tr.certNo) line('Chứng nhận GAP', tr.certNo + (tr.certBody ? ' (' + tr.certBody + ')' : '') + (tr.certExpiry ? ' · HSD ' + tr.certExpiry : ''));
+    if (tr.seedSource) line('Nguồn giống', tr.seedSource);
+  }
   if (lot.harvest) {
     line('Ngày thu hoạch', lot.harvest.date, true);
     line('Sản lượng', `${lot.harvest.qty} ${lot.harvest.unit}`, true);

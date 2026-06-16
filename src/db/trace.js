@@ -100,10 +100,11 @@ export const lotStore = {
 
   async byId(lotId) { return (await get(LOT_PREFIX + lotId)) || null; },
 
-  async create({ crop, variety, zoneId, area, plantedAt, note }) {
+  async create({ crop, variety, zoneId, area, plantedAt, note, trace }) {
     if (!crop) throw new Error('Thiếu tên cây trồng');
     const farmId = authStore.activeFarmId || 'F1';
     const code = await nextLotCode(farmId);
+    const t = trace || {};
     const lot = {
       id: code, // code là duy nhất → dùng làm id
       code,
@@ -111,6 +112,20 @@ export const lotStore = {
       crop, variety: variety || '', zoneId: zoneId || '', area: area || '',
       plantedAt: plantedAt || new Date().toISOString().slice(0, 10),
       note: note || '',
+      // V5 — Hồ sơ chuẩn truy xuất (GS1 / VietGAP / EU / Nhật). Tuỳ chọn, append vào lô.
+      trace: {
+        puc: t.puc || '',            // Mã số vùng trồng (VietGAP/Cục BVTV) — KEY xuất khẩu
+        gtin: t.gtin || '',          // GS1 GTIN (mã sản phẩm toàn cầu)
+        gln: t.gln || '',            // GS1 GLN (mã địa điểm cơ sở)
+        producer: t.producer || '',  // Tên cơ sở sản xuất
+        address: t.address || '',    // Địa chỉ vùng trồng
+        standards: Array.isArray(t.standards) ? t.standards : [], // ['VietGAP','GlobalGAP','EU-Organic','JGAP']
+        certNo: t.certNo || '',      // Số giấy chứng nhận GAP
+        certBody: t.certBody || '',  // Tổ chức chứng nhận
+        certExpiry: t.certExpiry || '', // Ngày hết hạn chứng nhận
+        market: t.market || '',      // Thị trường đích: noi-dia|EU|JP|US|CN
+        seedSource: t.seedSource || '', // Nguồn giống (truy xuất ngược 1 bước — EU 178/2002)
+      },
       status: 'growing',          // growing | harvested | closed
       phiUntil: null,             // ts — khoá thu hoạch (an toàn thực phẩm)
       phiSource: null,            // tên thuốc gây khoá
