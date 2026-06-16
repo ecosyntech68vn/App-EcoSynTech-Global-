@@ -1,15 +1,27 @@
-// Settings — URL, mode, sync interval, storage, logout
-// V3.1: dead-letter UI (FIX #5) + validate URL TLS policy (FIX #3) + push config xuống bg runner (FIX #6)
+// Settings — V5.0.0-rc1
+// Base V4.1 stable + 2 V5 add-on:
+//   1) DEV mode (PIN 9999) → toggle tier capability + show debug info
+//   2) FCM toggle → opt-in FCM scaffold (chỉ active nếu plugin @capacitor/push-notifications cài runtime)
 import { authStore, validateServerUrl } from '../stores/auth.js';
 import { syncQueue } from '../stores/sync.js';
 import { bgsync } from '../stores/bgsync.js';
 import { PLANS } from '../stores/plan.js';
+import { pushStore } from '../stores/push.js';
 import { demoData } from '../db/demo.js';
 import { Filesystem, Directory } from '@capacitor/filesystem';
+import { get, set } from 'idb-keyval';
+
+const DEV_MODE_KEY = 'dev:mode_active';
+const FCM_KEY = 'push:fcm_enabled';
+
+async function getDevMode() { return !!(await get(DEV_MODE_KEY)); }
+async function getFcm() { return !!(await get(FCM_KEY)); }
 
 export async function renderSettings() {
   const queueSize = await syncQueue.size();
   const deadSize = await syncQueue.deadSize();
+  const devActive = await getDevMode();
+  const fcmActive = await getFcm();
   return `
     <div class="app-header">⚙️ Cài đặt</div>
     <div class="form">
@@ -73,6 +85,42 @@ export async function renderSettings() {
 
       <hr style="margin:24px 0; border:0; border-top:1px solid var(--c-border);" />
 
+      <h3 style="margin:0 0 10px; font-size:14px;">🔔 Push notification (V5)</h3>
+      <div style="padding:12px; border:1px dashed var(--c-border); border-radius:8px;">
+        <div class="card-meta" style="margin-bottom:8px;">
+          Mặc định: polling 30s + Local Notification (offline-safe).<br/>
+          FCM (Firebase Cloud Messaging): cần cài plugin <code>@capacitor/push-notifications</code> + Firebase config — chỉ bật khi đã setup. Polling 30s vẫn chạy làm backup.
+        </div>
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+          <input id="set-fcm" type="checkbox" ${fcmActive?'checked':''} style="width:auto;" />
+          <span>Bật FCM (nếu plugin có sẵn)</span>
+        </label>
+        <div id="fcm-status" class="card-meta" style="margin-top:6px; font-size:11px;">
+          Trạng thái runtime: <strong id="fcm-runtime-status">đang kiểm tra...</strong>
+        </div>
+      </div>
+
+      <hr style="margin:24px 0; border:0; border-top:1px solid var(--c-border);" />
+
+      <h3 style="margin:0 0 10px; font-size:14px;">🔧 DEV mode (V5)</h3>
+      <div style="padding:12px; border:1px dashed var(--c-border); border-radius:8px;">
+        ${devActive ? `
+          <div class="card-meta" style="color:#c62828; font-weight:600; margin-bottom:8px;">
+            ⚠ DEV mode ĐANG BẬT — chỉ dùng để test, KHÔNG để trên production.
+          </div>
+          <div class="card-meta" style="margin-bottom:8px;">
+            Hiện tại đang test tier: <strong>${escapeHtml(authStore.plan || '-')}</strong>
+          </div>
+          <button id="dev-off" class="btn danger" style="width:100%;">Tắt DEV mode</button>
+        ` : `
+          <div class="card-meta" style="margin-bottom:8px;">Nhập PIN DEV để bật chế độ test tier capability flags.</div>
+          <input id="dev-pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="PIN DEV (4 số)" />
+          <button id="dev-unlock" class="btn secondary" style="margin-top:8px; width:100%;">Mở khoá DEV</button>
+        `}
+      </div>
+
+      <hr style="margin:24px 0; border:0; border-top:1px solid var(--c-border);" />
+
       <h3 style="margin:0 0 10px; font-size:14px;">Tài khoản</h3>
       <div class="card-meta">Farmer ID: <strong>${escapeHtml(authStore.farmerId || '-')}</strong></div>
 
@@ -88,7 +136,7 @@ export async function renderSettings() {
       </div>
 
       <p style="text-align:center; margin-top:30px; font-size:12px; color:var(--c-text-muted);">
-        EcoSynTech Farm OS v4.0.0<br/>Build ${new Date().toISOString().slice(0,10)}
+        EcoSynTech Farm OS v5.0.0-rc1<br/>Build ${new Date().toISOString().slice(0,10)}
       </p>
     </div>
   `;
@@ -110,7 +158,6 @@ window.wire_settings = function() {
     const url = document.getElementById('set-url').value.trim();
     const cloudUrl = document.getElementById('set-cloud').value.trim();
     const mode = document.getElementById('set-mode').value;
-    // FIX #3 — validate trước khi lưu
     try {
       if (url && mode !== 'local') {
         const v = validateServerUrl(url);
@@ -125,19 +172,17 @@ window.wire_settings = function() {
     authStore.cloudUrl = cloudUrl;
     authStore.mode = mode;
     await authStore.save();
-    bgsync.pushConfigToRunner(); // FIX #6 — runner cần url/token mới
+    bgsync.pushConfigToRunner();
     window.showToast?.('✓ Đã lưu', 'ok');
   });
 
-  // V4.0 — đổi gói (demo/quản trị)
   document.getElementById('set-plan')?.addEventListener('change', async (e) => {
     authStore.plan = e.target.value;
-    authStore.features = []; // offline: suy từ plan; server sẽ ghi đè khi login
+    authStore.features = [];
     await authStore.save();
     window.showToast?.('✓ Đã chuyển gói ' + (PLANS[authStore.plan]?.name || ''), 'ok');
   });
 
-  // V4.0 — demo data
   document.getElementById('demo-seed')?.addEventListener('click', async () => {
     const btn = document.getElementById('demo-seed');
     btn.disabled = true; btn.textContent = 'Đang tạo...';
@@ -154,7 +199,6 @@ window.wire_settings = function() {
     window.showToast?.(n > 0 ? `✓ Đã xoá ${n} lô mẫu` : 'Không có dữ liệu mẫu', '');
   });
 
-  // FIX #5 — dead-letter actions
   document.getElementById('dead-retry-all')?.addEventListener('click', async () => {
     await syncQueue.retryAllDead();
     await syncQueue.processQueue();
@@ -226,5 +270,65 @@ window.wire_settings = function() {
     } catch (e) {
       window.showToast?.('✗ ' + e.message, 'err');
     }
+  });
+
+  // ============================================================
+  // V5.0.0-rc1 — FCM toggle + DEV mode (PIN 9999)
+  // ============================================================
+  const fcmCheckbox = document.getElementById('set-fcm');
+  if (fcmCheckbox) {
+    fcmCheckbox.addEventListener('change', async (e) => {
+      if (e.target.checked) {
+        const ok = await pushStore.enableFcm();
+        if (ok) {
+          window.showToast?.('✓ FCM đã bật + đăng ký token', 'ok');
+          updateFcmStatus(true);
+        } else {
+          window.showToast?.('⚠ Plugin FCM chưa cài — polling 30s vẫn chạy', '');
+          e.target.checked = false;
+          updateFcmStatus(false);
+        }
+      } else {
+        await pushStore.disableFcm();
+        window.showToast?.('FCM đã tắt — polling 30s vẫn chạy', '');
+        updateFcmStatus(false);
+      }
+    });
+    // Initial runtime status check
+    (function() {
+      const hasPlugin = !!(window.Capacitor?.Plugins?.PushNotifications);
+      updateFcmStatus(hasPlugin && pushStore.fcmActive);
+      const el = document.getElementById('fcm-runtime-status');
+      if (el) {
+        el.textContent = hasPlugin
+          ? (pushStore.fcmActive ? 'FCM ACTIVE (token registered)' : 'plugin available, chưa register')
+          : 'plugin CHƯA cài (web hoặc Android build không include @capacitor/push-notifications)';
+      }
+    })();
+  }
+
+  function updateFcmStatus(active) {
+    const el = document.getElementById('fcm-runtime-status');
+    if (!el) return;
+    el.textContent = active ? 'FCM ACTIVE (token registered)' : 'FCM disabled — polling 30s active';
+  }
+
+  // DEV mode unlock (PIN 9999)
+  document.getElementById('dev-unlock')?.addEventListener('click', async () => {
+    const pin = document.getElementById('dev-pin').value.trim();
+    if (pin !== '9999') {
+      window.showToast?.('✗ PIN DEV sai', 'err');
+      return;
+    }
+    await set(DEV_MODE_KEY, true);
+    window.showToast?.('✓ DEV mode ON — đổi tier ở dropdown gói', 'ok');
+    document.querySelector('[x-data]').__x?.$data?.nav?.('settings');
+  });
+
+  document.getElementById('dev-off')?.addEventListener('click', async () => {
+    if (!confirm('Tắt DEV mode? (Tier sẽ reset về server-controlled khi reconnect.)')) return;
+    await set(DEV_MODE_KEY, false);
+    window.showToast?.('DEV mode OFF', '');
+    document.querySelector('[x-data]').__x?.$data?.nav?.('settings');
   });
 };
