@@ -50,9 +50,22 @@ export const materialsStore = {
     const cat = await this.list();
     mat.id = 'm_' + Date.now().toString(36);
     mat.phiDays = Math.max(0, parseInt(mat.phiDays, 10) || 0);
+    // V5 — tồn kho (qty hiện có, đơn vị, ngưỡng cảnh báo sắp hết)
+    mat.stock = { qty: parseFloat(mat.stockQty) || 0, unit: mat.stockUnit || '', lowAt: parseFloat(mat.lowAt) || 0 };
+    delete mat.stockQty; delete mat.stockUnit; delete mat.lowAt;
     cat.push(mat);
     await set(MAT_KEY, cat);
     return mat;
+  },
+  // V5 — nhập/xuất kho (delta < 0 = xuất dùng). Không âm. Trả mat sau cập nhật.
+  async adjustStock(id, delta) {
+    const cat = await this.list();
+    const i = cat.findIndex(m => m.id === id);
+    if (i < 0) return null;
+    if (!cat[i].stock) cat[i].stock = { qty: 0, unit: '', lowAt: 0 };
+    cat[i].stock.qty = Math.max(0, (parseFloat(cat[i].stock.qty) || 0) + Number(delta || 0));
+    await set(MAT_KEY, cat);
+    return cat[i];
   },
   async update(id, patch) {
     const cat = await this.list();
