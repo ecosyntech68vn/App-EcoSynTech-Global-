@@ -48,6 +48,15 @@ Baseline đã verify: web build **xanh** (vite OK), 3 workflow CI sẵn sàng.
 
 ---
 
+## V5.1 — Kho ERP (ĐÃ LÀM, 2026-06-16)
+- Sổ cái nhập–xuất–tồn append-only là nguồn sự thật; tồn = Đầu kỳ + Nhập − Xuất − Chuyển; chặn âm kho.
+- Form chứng từ đầy đủ (PNK/PXK, số HĐ, ngày CT, NCC/người mua, nguồn gốc, người thao tác); Kiểm kê đặt tồn thực tế.
+- Tồn an toàn per-item + cảnh báo; export CSV (báo cáo tồn + sổ nhập-xuất); import CSV theo mẫu.
+- **Hoãn — Import từ ẢNH (OCR hóa đơn/nhãn):** OCR offline nặng & sai số cao với hóa đơn VN → làm khi có
+  backend V6 (AI đọc ảnh online), output đổ về đúng cấu trúc CSV/chứng từ hiện có. Trước mắt CSV là đường chuẩn.
+
+---
+
 ## Phụ thuộc & rủi ro
 - **Phase 1** cần chốt giao thức MQTT/BLE với FW9.4 (đọc FW để khớp topic).
 - **Phase 3** cần quyết hạ tầng cloud trước khi code backend — đây là phần "nặng" nhất, cần chi phí vận hành.
