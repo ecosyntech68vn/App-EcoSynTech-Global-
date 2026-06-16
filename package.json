@@ -1,7 +1,7 @@
 {
   "name": "ecosyntech-farmos-mobile",
-  "version": "5.0.0-rc1",
-  "description": "EcoSynTech Farm OS — Mobile App V5.0.0-rc1 (DEV tier switch + FCM scaffold; lộ trình product: điều khiển phần cứng thật + truy xuất production + cloud sync)",
+  "version": "5.1.0",
+  "description": "EcoSynTech Farm OS — Mobile App V5.1.0 (Kho ERP: nhập–xuất–tồn có chứng từ + tồn an toàn + export/import CSV; truy xuất chuẩn GS1/VietGAP/EU/JGAP; điều khiển phần cứng)",
   "type": "module",
   "scripts": {
     "dev": "vite",

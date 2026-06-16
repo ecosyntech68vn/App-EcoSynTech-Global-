@@ -50,22 +50,28 @@ export const materialsStore = {
     const cat = await this.list();
     mat.id = 'm_' + Date.now().toString(36);
     mat.phiDays = Math.max(0, parseInt(mat.phiDays, 10) || 0);
-    // V5 — tồn kho (qty hiện có, đơn vị, ngưỡng cảnh báo sắp hết)
-    mat.stock = { qty: parseFloat(mat.stockQty) || 0, unit: mat.stockUnit || '', lowAt: parseFloat(mat.lowAt) || 0 };
+    // V5.1 — chỉ giữ ĐƠN VỊ ở catalog; TỒN tính từ sổ cái (không lưu qty rời).
+    const unit = mat.stockUnit || '';
+    const openQty = parseFloat(mat.stockQty) || 0;
+    const lowAt = parseFloat(mat.lowAt) || 0;
+    mat.stock = { unit };
     delete mat.stockQty; delete mat.stockUnit; delete mat.lowAt;
     cat.push(mat);
     await set(MAT_KEY, cat);
+    // Tồn đầu kỳ → ghi 1 chứng từ "open" vào sổ cái (nguồn sự thật duy nhất)
+    if (openQty > 0) {
+      try { await inventoryStore.post({ kind: 'raw', itemId: mat.id, itemName: mat.name, type: 'open', qty: openQty, unit, doc: { docDate: new Date().toISOString().slice(0, 10), origin: 'Tồn đầu kỳ' }, note: 'Tồn đầu kỳ' }); } catch (_) {}
+    }
+    if (lowAt > 0) { try { await inventoryStore.setSafe(mat.id, lowAt); } catch (_) {} }
     return mat;
   },
-  // V5 — nhập/xuất kho (delta < 0 = xuất dùng). Không âm. Trả mat sau cập nhật.
+  // (giữ tương thích — KHÔNG còn là nguồn tồn; mọi thay đổi tồn đi qua inventoryStore.post)
   async adjustStock(id, delta) {
-    const cat = await this.list();
-    const i = cat.findIndex(m => m.id === id);
-    if (i < 0) return null;
-    if (!cat[i].stock) cat[i].stock = { qty: 0, unit: '', lowAt: 0 };
-    cat[i].stock.qty = Math.max(0, (parseFloat(cat[i].stock.qty) || 0) + Number(delta || 0));
-    await set(MAT_KEY, cat);
-    return cat[i];
+    const mat = await this.byId(id);
+    if (!mat) return null;
+    const q = Math.abs(Number(delta) || 0);
+    if (q > 0) await inventoryStore.post({ kind: 'raw', itemId: id, itemName: mat.name, type: Number(delta) >= 0 ? 'import' : 'export', qty: q, unit: (mat.stock && mat.stock.unit) || '', allowNeg: true, note: 'Điều chỉnh nhanh' });
+    return mat;
   },
   async update(id, patch) {
     const cat = await this.list();
@@ -85,84 +91,97 @@ export const materialsStore = {
   }
 };
 
-// ===== V5.1 — Inventory core: StockMovement (append-only) + thành phẩm =====
-// Lõi tổng quát theo EOP: Item (raw/finished/component) + chuyển động kho không sửa được.
-const MOVE_KEY = 'inv:moves';      // mảng chuyển động kho (append-only)
-const FINI_KEY = 'inv:finished';   // mảng thành phẩm (từ thu hoạch / sản xuất)
+// ===== V5.1 — Inventory core: SỔ CÁI nhập–xuất–tồn chuẩn ERP =====
+// Nguyên tắc kế toán kho:
+//  · Sổ cái StockMovement APPEND-ONLY là NGUỒN SỰ THẬT DUY NHẤT — không lưu/sửa "qty tồn" rời.
+//  · Tồn(item) = Σ[Đầu kỳ + Nhập] − Σ[Xuất + Chuyển đi]  (tính lại từ sổ mỗi lần đọc).
+//  · post() KIỂM SOÁT: chặn qty≤0, chặn Xuất/Chuyển vượt tồn (không cho âm kho).
+//  · Mỗi chuyển động mang CHỨNG TỪ: doc{pxk, invoiceNo, docDate, party, operator, origin}.
+const MOVE_KEY = 'inv:moves';      // sổ cái chuyển động (append-only)
+const FINI_KEY = 'inv:finished';   // metadata thành phẩm (qty suy ra từ sổ cái)
+const SAFE_KEY = 'inv:safe';       // ngưỡng tồn an toàn { itemId: qty }
+
+// Dấu cộng/trừ theo loại chứng từ
+const MV_SIGN = { open: 1, import: 1, adjustUp: 1, export: -1, transfer: -1, adjustDown: -1 };
 
 export const inventoryStore = {
   async movements() { return (await get(MOVE_KEY)) || []; },
-  async _move(mv) {
+
+  // Ghi thô vào sổ (nội bộ) — không validate. Dùng post() cho nghiệp vụ.
+  async _append(mv) {
     const all = (await get(MOVE_KEY)) || [];
-    const full = { id: 'mv_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), ts: Date.now(), ...mv };
+    const full = { id: 'mv_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), ts: Date.now(), doc: {}, ...mv };
     all.unshift(full);
-    await set(MOVE_KEY, all.slice(0, 1000));
+    await set(MOVE_KEY, all.slice(0, 5000));
     return full;
   },
-  async finishedList() { return (await get(FINI_KEY)) || []; },
+  async _move(mv) { return this._append(mv); }, // alias tương thích ngược
+
+  // Tồn hiện có của 1 item — tính từ sổ cái
+  async balanceOf(itemId) {
+    const all = await this.movements();
+    return all.filter(m => m.itemId === itemId)
+      .reduce((s, m) => s + (MV_SIGN[m.type] || 0) * (parseFloat(m.qty) || 0), 0);
+  },
+  // Bản đồ tồn { itemId: qty } cho toàn bộ
+  async balanceMap() {
+    const all = await this.movements(); const map = {};
+    for (const m of all) map[m.itemId] = (map[m.itemId] || 0) + (MV_SIGN[m.type] || 0) * (parseFloat(m.qty) || 0);
+    return map;
+  },
+
+  // GHI CHỨNG TỪ CÓ KIỂM SOÁT — nghiệp vụ nhập/xuất/chuyển/đầu kỳ đều đi qua đây.
+  // Ném lỗi nếu qty≤0 hoặc xuất/chuyển vượt tồn (trừ khi allowNeg=true cho ghi nhật ký đồng).
+  async post(mv) {
+    const q = parseFloat(mv.qty);
+    if (!(q > 0)) throw new Error('Số lượng phải lớn hơn 0');
+    if ((mv.type === 'export' || mv.type === 'transfer' || mv.type === 'adjustDown') && !mv.allowNeg) {
+      const bal = await this.balanceOf(mv.itemId);
+      if (q > bal + 1e-9) throw new Error(`Không đủ tồn: cần ${q}${mv.unit ? ' ' + mv.unit : ''}, tồn hiện có ${bal}${mv.unit ? ' ' + mv.unit : ''}.`);
+    }
+    const { allowNeg, ...rest } = mv;
+    return this._append({ ...rest, qty: q });
+  },
+
+  // ===== Tồn an toàn (cảnh báo sắp hết) =====
+  async allSafe() { return (await get(SAFE_KEY)) || {}; },
+  async getSafe(itemId) { return parseFloat((await this.allSafe())[itemId]) || 0; },
+  async setSafe(itemId, qty) {
+    const s = await this.allSafe(); s[itemId] = Math.max(0, parseFloat(qty) || 0);
+    await set(SAFE_KEY, s); return s[itemId];
+  },
+
+  // ===== Thành phẩm — metadata; qty SUY RA từ sổ cái =====
+  async finishedMeta() { return (await get(FINI_KEY)) || []; },
+  async finishedList() {
+    const arr = await this.finishedMeta(); const map = await this.balanceMap();
+    return arr.map(f => ({ ...f, qty: map[f.id] || 0, status: (map[f.id] || 0) > 0 ? 'in_stock' : 'out' }));
+  },
   async finishedByLot(code) { return (await this.finishedList()).find(f => f.lotCode === code) || null; },
 
   // Thu hoạch → nhập kho thành phẩm (gọi tự động trong lotStore.harvest)
   async receiveFromHarvest(lot) {
-    const arr = await this.finishedList();
+    const arr = await this.finishedMeta();
     const qty = parseFloat(lot.harvest && lot.harvest.qty) || 0;
     const unit = (lot.harvest && lot.harvest.unit) || 'kg';
-    let item = arr.find(f => f.lotCode === lot.code);
-    if (item) { item.qty = (parseFloat(item.qty) || 0) + qty; }
-    else {
+    const id = 'fg_' + lot.code;
+    let item = arr.find(f => f.id === id);
+    if (!item) {
       item = {
-        id: 'fg_' + lot.code, lotCode: lot.code, lotId: lot.id,
+        id, lotCode: lot.code, lotId: lot.id,
         name: lot.crop + (lot.variety ? ' ' + lot.variety : ''),
-        crop: lot.crop, variety: lot.variety || '',
-        qty, unit, harvestDate: lot.harvest && lot.harvest.date,
-        trace: lot.trace || {},      // mang theo hồ sơ chuẩn (PUC/GTIN/chuẩn áp dụng)
-        createdAt: Date.now(), status: 'in_stock'
+        crop: lot.crop, variety: lot.variety || '', unit,
+        harvestDate: lot.harvest && lot.harvest.date,
+        trace: lot.trace || {}, createdAt: Date.now()
       };
-      arr.unshift(item);
+      arr.unshift(item); await set(FINI_KEY, arr);
     }
-    await set(FINI_KEY, arr);
-    await this._move({ kind: 'finished', itemId: item.id, itemName: item.name, type: 'import', qty, unit, ref: lot.code, note: 'Thu hoạch lô ' + lot.code });
+    if (qty > 0) await this.post({
+      kind: 'finished', itemId: id, itemName: item.name, type: 'import', qty, unit, ref: lot.code,
+      doc: { docDate: (lot.harvest && lot.harvest.date) || '', operator: (lot.harvest && lot.harvest.by) || '', origin: 'Lô ' + lot.code },
+      note: 'Thu hoạch lô ' + lot.code
+    });
     return item;
-  },
-  // Xuất thành phẩm (bán/giao)
-  async issueFinished(itemId, qty, note) {
-    const arr = await this.finishedList();
-    const it = arr.find(f => f.id === itemId);
-    if (!it) return null;
-    const q = parseFloat(qty) || 0;
-    it.qty = Math.max(0, (parseFloat(it.qty) || 0) - q);
-    if (it.qty === 0) it.status = 'out';
-    await set(FINI_KEY, arr);
-    await this._move({ kind: 'finished', itemId, itemName: it.name, type: 'export', qty: q, unit: it.unit, note: note || 'Xuất bán' });
-    return it;
-  },
-  // Nhập thêm thành phẩm thủ công (+qty)
-  async importFinished(itemId, qty, note) {
-    const arr = await this.finishedList();
-    const it = arr.find(f => f.id === itemId);
-    if (!it) return null;
-    const q = parseFloat(qty) || 0;
-    it.qty = (parseFloat(it.qty) || 0) + q;
-    if (it.qty > 0) it.status = 'in_stock';
-    await set(FINI_KEY, arr);
-    await this._move({ kind: 'finished', itemId, itemName: it.name, type: 'import', qty: q, unit: it.unit, note: note || 'Nhập kho' });
-    return it;
-  },
-  // Chuyển chi nhánh / trang trại khác (transfer) — ghi from→to, cập nhật vị trí item
-  async transferFinished(itemId, qty, toFarm, note) {
-    const arr = await this.finishedList();
-    const it = arr.find(f => f.id === itemId);
-    if (!it) return null;
-    const q = parseFloat(qty) || 0;
-    const from = it.farmId || lotStore_currentFarm();
-    if (q >= (parseFloat(it.qty) || 0)) it.farmId = toFarm;  // chuyển toàn bộ → đổi vị trí
-    await set(FINI_KEY, arr);
-    await this._move({ kind: 'finished', itemId, itemName: it.name, type: 'transfer', qty: q, unit: it.unit, from, to: toFarm, note: note || ('Chuyển → ' + toFarm) });
-    return it;
-  },
-  // Ghi chuyển chi nhánh cho VẬT TƯ (catalog dùng chung → ghi audit chuyển động)
-  async transferRaw(matId, matName, qty, unit, toFarm, note) {
-    await this._move({ kind: 'raw', itemId: matId, itemName: matName, type: 'transfer', qty: parseFloat(qty) || 0, unit: unit || '', to: toFarm, note: note || ('Chuyển → ' + toFarm) });
   },
 };
 function lotStore_currentFarm() { try { return authStore.activeFarmId || '(hiện tại)'; } catch (_) { return '(hiện tại)'; } }
@@ -289,11 +308,16 @@ export const lotStore = {
         }
       }
     }
-    // V5.1 — dùng vật tư → ghi xuất kho + trừ tồn (best-effort theo số liều)
+    // V5.1 — dùng vật tư → ghi XUẤT kho vào sổ cái (allowNeg: nhật ký đồng ruộng không bị
+    // chặn vì lý do tồn — toàn vẹn bằng chứng > chặn kho; chênh tồn xử lý bằng kiểm kê).
     if (evt.materialId && evt.dose) {
       try {
-        await materialsStore.adjustStock(evt.materialId, -(parseFloat(evt.dose) || 0));
-        await inventoryStore._move({ kind: 'raw', itemId: evt.materialId, itemName: evt.materialName, type: 'export', qty: parseFloat(evt.dose) || 0, unit: evt.doseUnit || '', ref: lot.code, note: 'Dùng cho lô ' + lot.code });
+        await inventoryStore.post({
+          kind: 'raw', itemId: evt.materialId, itemName: evt.materialName, type: 'export',
+          qty: parseFloat(evt.dose) || 0, unit: evt.doseUnit || '', ref: lot.code, allowNeg: true,
+          doc: { operator: authStore.farmerId || '', docDate: new Date(evt.ts || Date.now()).toISOString().slice(0, 10) },
+          note: 'Dùng cho lô ' + lot.code
+        });
       } catch (_) {}
     }
     const full = await this._appendEvent(lotId, evt);

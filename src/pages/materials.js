@@ -1,14 +1,16 @@
 // materials.js — V5 Danh mục vật tư CHUẨN HOÁ + tồn kho + ảnh khai báo.
 // Thuộc tính đặc thù theo loại (thuốc BVTV: hoạt chất/nhóm độc/số ĐK/dạng/công dụng;
 // phân bón: NPK/dạng). PHI giữ chuẩn VietGAP. Tồn kho: qty + nhập/xuất + cảnh báo sắp hết.
-import { materialsStore } from '../db/trace.js';
+import { materialsStore, inventoryStore } from '../db/trace.js';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 
 const TYPE_LBL = { fertilizer: '🧪 Phân bón', pesticide: '☠️ Thuốc BVTV', other: '📦 Khác' };
 
 export async function renderMaterials() {
   const mats = await materialsStore.list();
-  const low = mats.filter(m => m.stock && m.stock.lowAt > 0 && m.stock.qty <= m.stock.lowAt).length;
+  const bal = await inventoryStore.balanceMap();   // tồn suy ra từ sổ cái (nguồn sự thật)
+  const safe = await inventoryStore.allSafe();
+  const low = mats.filter(m => { const s = parseFloat(safe[m.id]) || 0; return s > 0 && (bal[m.id] || 0) <= s; }).length;
   return `
     <div class="app-header">📦 Vật tư + Tồn kho
       <button onclick="document.querySelector('[x-data]').__x.$data.nav('more')" style="float:right;background:none;border:0;color:white;font-size:24px;">←</button>
@@ -83,8 +85,10 @@ export async function renderMaterials() {
 
     <h3 style="padding:14px 16px 4px; color:var(--c-text-muted); font-size:13px; text-transform:uppercase;">Danh mục (${mats.length})</h3>
     ${mats.map(m => {
-      const st = m.stock || { qty: 0, unit: '', lowAt: 0 };
-      const isLow = st.lowAt > 0 && st.qty <= st.lowAt;
+      const unit = (m.stock && m.stock.unit) || '';
+      const qty = bal[m.id] || 0;
+      const safeAt = parseFloat(safe[m.id]) || 0;
+      const isLow = safeAt > 0 && qty <= safeAt;
       const attr = [
         m.activeIngredient && 'HC: ' + m.activeIngredient,
         m.npk && 'NPK: ' + m.npk,
@@ -103,11 +107,8 @@ export async function renderMaterials() {
         <div class="card-meta">${TYPE_LBL[m.type] || m.type}${attr ? ' · ' + attr : ''}</div>
         ${m.note ? `<div class="card-meta">${escapeHtml(m.note)}</div>` : ''}
         <div class="row" style="margin-top:8px; align-items:center;">
-          <div class="card-meta">Tồn: <strong style="color:${isLow ? '#c62828' : 'inherit'};">${st.qty}${st.unit ? ' ' + escapeHtml(st.unit) : ''}</strong>${isLow ? ' ⚠ sắp hết' : ''}</div>
-          <div style="display:flex; gap:6px;">
-            <button data-mat-adj="${escapeHtml(m.id)}" data-d="-1" style="padding:2px 10px; border:1px solid var(--c-border); border-radius:6px; background:none;">−</button>
-            <button data-mat-adj="${escapeHtml(m.id)}" data-d="1" style="padding:2px 10px; border:1px solid var(--c-border); border-radius:6px; background:none;">＋</button>
-          </div>
+          <div class="card-meta">Tồn: <strong style="color:${isLow ? '#c62828' : 'inherit'};">${qty}${unit ? ' ' + escapeHtml(unit) : ''}</strong>${safeAt > 0 ? ' · an toàn ≥ ' + safeAt : ''}${isLow ? ' ⚠ sắp hết' : ''}</div>
+          <a onclick="document.querySelector('[x-data]').__x.$data.nav('inventory')" style="color:var(--c-primary,#1565C0); cursor:pointer; font-size:12px;">Nhập/Xuất tại Kho →</a>
         </div>
         ${m.photoPath ? `<img src="${escapeHtml(m.photoPath)}" style="margin-top:8px; max-width:100%; max-height:120px; border-radius:8px;" />` : ''}
         <div style="margin-top:6px;">
@@ -156,12 +157,6 @@ window.wire_materials = function() {
       nav();
     } catch (err) { window.showToast?.('✗ ' + err.message, 'err'); }
   });
-
-  // Nhập/xuất tồn kho nhanh
-  document.querySelectorAll('[data-mat-adj]').forEach(b => b.addEventListener('click', async () => {
-    await materialsStore.adjustStock(b.dataset.matAdj, Number(b.dataset.d));
-    nav();
-  }));
 
   document.querySelectorAll('[data-mat-del]').forEach(b => b.addEventListener('click', async () => {
     if (!confirm('Xoá vật tư này khỏi danh mục? (Nhật ký đã ghi không bị ảnh hưởng)')) return;

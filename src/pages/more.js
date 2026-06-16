@@ -11,7 +11,7 @@ export async function renderMore() {
     <h3 style="padding:14px 16px 4px; color:var(--c-text-muted); font-size:13px; text-transform:uppercase;">V3.1 — Truy xuất nguồn gốc</h3>
     ${menuItem('lots', '🌾', 'Lô / Mùa vụ + QR', 'Truy xuất nguồn gốc · PHI lock')}
     ${menuItem('materials', '📦', 'Vật tư + PHI', 'Phân bón · Thuốc BVTV · tồn kho')}
-    ${menuItem('inventory', '🏬', 'Kho — Vật tư & Thành phẩm', 'Tồn kho · thu hoạch→tồn · nhập/xuất')}
+    ${menuItem('inventory', '🏬', 'Kho — Nhập · Xuất · Tồn', 'Chứng từ · tồn an toàn · CSV · thu hoạch→tồn')}
 
     <h3 style="padding:14px 16px 4px; color:var(--c-text-muted); font-size:13px; text-transform:uppercase;">V1.1 — Core+</h3>
     ${menuItem('control', '⚡', 'Điều khiển thiết bị', '2-step confirm')}
@@ -43,7 +43,7 @@ export async function renderMore() {
     </div>
 
     <div style="text-align:center; padding:20px; color:var(--c-text-muted); font-size:12px;">
-      EcoSynTech Farm OS v5.0.0-rc1 · Truy xuất chuẩn (GS1/VietGAP/EU/JGAP) + Kho vật tư/thành phẩm + Điều khiển thiết bị
+      EcoSynTech Farm OS v5.1.0 · Truy xuất chuẩn (GS1/VietGAP/EU/JGAP) + Kho ERP nhập–xuất–tồn (chứng từ · CSV) + Điều khiển thiết bị
     </div>
   `;
 }
