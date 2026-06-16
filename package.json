@@ -1,7 +1,7 @@
 {
   "name": "ecosyntech-farmos-mobile",
-  "version": "4.0.0",
-  "description": "EcoSynTech Farm OS — Mobile App V4.0 (Plan gating + Rule Builder + Truy xuất nguồn gốc)",
+  "version": "5.0.0-rc1",
+  "description": "EcoSynTech Farm OS — Mobile App V5.0.0-rc1 (DEV tier switch + FCM scaffold trên nền V4.1 stable)",
   "type": "module",
   "scripts": {
     "dev": "vite",
