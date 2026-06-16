@@ -2,6 +2,9 @@
 // Nguyên tắc: TỒN suy ra từ SỔ CÁI (inventoryStore). Mọi thay đổi đi qua FORM CHỨNG TỪ
 // (post() validate: không âm kho, qty>0). Có tồn an toàn cảnh báo, export/import CSV.
 import { materialsStore, inventoryStore } from '../db/trace.js';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
+import { Capacitor } from '@capacitor/core';
 
 const TYPE_LBL = { fertilizer: '🧪 Phân bón', pesticide: '☠️ Thuốc BVTV', other: '📦 Khác' };
 const MOVE_LBL = { open: '🟦 Đầu kỳ', import: '⬇ Nhập', export: '⬆ Xuất', transfer: '↔ Chuyển CN', adjustUp: '＋ Điều chỉnh', adjustDown: '－ Điều chỉnh' };
@@ -128,12 +131,23 @@ window.wire_inventory = function () {
   const toast = (m, t) => window.showToast && window.showToast(m, t || '');
 
   // ---- Mở form chứng từ Nhập/Xuất/Chuyển/Kiểm kê ----
-  document.querySelectorAll('.inv-act').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.inv-act').forEach(b => b.addEventListener('click', async () => {
     const d = b.parentElement.dataset;
     const act = b.dataset.act;
     const { id, kind, name, unit } = d;
+    const cur = await inventoryStore.balanceOf(id);   // tồn hiện có (để hiện + nhắc trước khi xuất)
     const TITLE = { import: '⬇ Nhập kho', export: '⬆ Xuất kho', transfer: '↔ Chuyển chi nhánh', adjust: '📋 Kiểm kê (đặt tồn thực tế)' };
     const partyLbl = act === 'export' ? 'Người mua / khách hàng' : 'Nhà cung cấp';
+
+    // Hộp tồn hiện có: SỐ to + đơn vị kèm bên (vd "500 kg")
+    const balBox = `<div style="background:#f1f8e9; border:1px solid #c5e1a5; border-radius:10px; padding:10px 14px; margin-bottom:6px; display:flex; align-items:baseline; gap:8px;">
+        <span style="font-size:12px; color:var(--c-text-muted);">Tồn hiện có</span>
+        <span style="font-size:26px; font-weight:800; color:#2E7D32; margin-left:auto;">${fmt(cur)}</span>
+        <span style="font-size:15px; color:#2E7D32; font-weight:700;">${esc(unit || '—')}</span>
+      </div>`;
+    const hint = (act === 'export' || act === 'transfer')
+      ? `<div style="font-size:12px; color:#ef6c00; margin-bottom:6px;">⚠ Không được ${act === 'export' ? 'xuất' : 'chuyển'} quá tồn hiện có (${fmt(cur)} ${esc(unit || '')}).</div>` : '';
+
     let body = '';
     if (act === 'adjust') {
       body = field('Tồn thực tế đếm được', 'realQty', { type: 'number', step: '0.001', min: '0', req: true, ph: 'Số lượng kiểm kê thực tế' })
@@ -156,13 +170,16 @@ window.wire_inventory = function () {
     }
     openModal(`
       <div style="font-weight:700; font-size:17px; margin-bottom:2px;">${TITLE[act]}</div>
-      <div style="color:var(--c-text-muted); font-size:13px; margin-bottom:6px;">${esc(name)} · ${kind === 'finished' ? 'Thành phẩm' : 'Vật tư'}</div>
+      <div style="color:var(--c-text-muted); font-size:13px; margin-bottom:8px;">${esc(name)} · ${kind === 'finished' ? 'Thành phẩm' : 'Vật tư'}</div>
+      ${balBox}${hint}
       <form id="inv-doc-form">${body}
-        <div style="display:flex; gap:10px; margin-top:16px;">
+        <div id="inv-err" style="display:none; background:#ffebee; border:1px solid #ef9a9a; color:#c62828; border-radius:8px; padding:9px 12px; margin-top:10px; font-size:13px; font-weight:600;"></div>
+        <div style="display:flex; gap:10px; margin-top:14px;">
           <button type="button" class="btn secondary inv-cancel" style="flex:1;">Hủy</button>
           <button type="submit" class="btn" style="flex:1;">Lưu chứng từ</button>
         </div>
       </form>`);
+    const showErr = m => { const e = document.getElementById('inv-err'); if (e) { e.textContent = '⚠ ' + m; e.style.display = 'block'; } else toast('✗ ' + m, 'err'); };
     document.querySelector('.inv-cancel')?.addEventListener('click', closeModal);
     document.getElementById('inv-doc-form')?.addEventListener('submit', async e => {
       e.preventDefault();
@@ -170,15 +187,15 @@ window.wire_inventory = function () {
       try {
         if (act === 'adjust') {
           const real = parseFloat(fd.get('realQty'));
-          if (!(real >= 0)) { toast('Tồn thực tế không hợp lệ', 'err'); return; }
-          const cur = await inventoryStore.balanceOf(id);
-          const delta = Math.round((real - cur) * 1000) / 1000;
+          if (!(real >= 0)) { showErr('Tồn thực tế không hợp lệ'); return; }
+          const now = await inventoryStore.balanceOf(id);
+          const delta = Math.round((real - now) * 1000) / 1000;
           if (delta === 0) { toast('Tồn khớp sổ, không cần điều chỉnh', 'ok'); closeModal(); return; }
           await inventoryStore.post({
             kind, itemId: id, itemName: name, type: delta > 0 ? 'adjustUp' : 'adjustDown',
             qty: Math.abs(delta), unit, allowNeg: true,
             doc: { docDate: fd.get('docDate') || today(), operator: fd.get('operator') || '', origin: 'Kiểm kê' },
-            note: 'Kiểm kê: sổ ' + fmt(cur) + ' → thực tế ' + fmt(real) + (fd.get('note') ? ' · ' + fd.get('note') : '')
+            note: 'Kiểm kê: sổ ' + fmt(now) + ' → thực tế ' + fmt(real) + (fd.get('note') ? ' · ' + fd.get('note') : '')
           });
         } else {
           await inventoryStore.post({
@@ -194,7 +211,7 @@ window.wire_inventory = function () {
           });
         }
         toast('✓ Đã ghi chứng từ', 'ok'); closeModal(); nav();
-      } catch (err) { toast('✗ ' + err.message, 'err'); }
+      } catch (err) { showErr(err.message); }   // cảnh báo hiện NGAY trong khung, không đóng modal
     });
   }));
 
@@ -241,13 +258,30 @@ window.wire_inventory = function () {
 // ============ CSV helpers ============
 function csvCell(v) { const s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
 function toCsv(rows) { return '﻿' + rows.map(r => r.map(csvCell).join(',')).join('\r\n'); }
-function downloadCsv(filename, csv) {
-  try {
+const isNative = () => { try { return Capacitor.isNativePlatform && Capacitor.isNativePlatform(); } catch (_) { return false; } };
+
+// Ghi CSV ra FILE THẬT. Web → tải về. Android → lưu Documents/EcoSynTech + mở Share (Zalo/Drive/Files).
+async function saveCsv(filename, csv) {
+  if (!isNative()) {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click();
     setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
-  } catch (e) { window.showToast && window.showToast('Không tải được file: ' + e.message, 'err'); }
+    window.showToast && window.showToast('✓ Đã tải ' + filename, 'ok');
+    return;
+  }
+  // 1) Ghi vào Cache để Share (FileProvider của plugin xử lý, không lỗi FileUriExposed)
+  await Filesystem.writeFile({ path: filename, data: csv, directory: Directory.Cache, encoding: Encoding.UTF8 });
+  const { uri } = await Filesystem.getUri({ directory: Directory.Cache, path: filename });
+  // 2) Lưu bản lâu dài để mở lại bằng ứng dụng Files
+  let saved = 'bộ nhớ tạm';
+  try {
+    await Filesystem.writeFile({ path: 'EcoSynTech/' + filename, data: csv, directory: Directory.Documents, encoding: Encoding.UTF8, recursive: true });
+    saved = 'Documents/EcoSynTech/' + filename;
+  } catch (_) {}
+  // 3) Mở Share để chọn nơi lưu/gửi
+  try { await Share.share({ title: filename, text: 'Báo cáo kho EcoSynTech', files: [uri] }); } catch (_) {}
+  window.showToast && window.showToast('✓ Đã lưu: ' + saved + ' — chọn app để mở/gửi', 'ok');
 }
 
 async function exportStockCsv() {
@@ -259,8 +293,7 @@ async function exportStockCsv() {
   const status = (q, s) => q <= 0 ? 'Hết' : (s > 0 && q <= s ? 'Sắp hết' : 'OK');
   for (const f of finished) { const s = parseFloat(safe[f.id]) || 0; rows.push([f.id, f.name, 'Thành phẩm', 'Lô ' + (f.lotCode || ''), f.unit || '', fmt(f.qty), s || '', status(f.qty, s)]); }
   for (const m of mats) { const q = bal[m.id] || 0; const s = parseFloat(safe[m.id]) || 0; rows.push([m.id, m.name, 'Vật tư', TYPE_LBL[m.type] || m.type, (m.stock && m.stock.unit) || '', fmt(q), s || '', status(q, s)]); }
-  downloadCsv('ecosyntech-ton-kho-' + today() + '.csv', toCsv(rows));
-  window.showToast && window.showToast('✓ Đã xuất CSV tồn kho', 'ok');
+  await saveCsv('ecosyntech-ton-kho-' + today() + '.csv', toCsv(rows));
 }
 
 async function exportMovesCsv() {
@@ -270,18 +303,16 @@ async function exportMovesCsv() {
     const d = mv.doc || {};
     rows.push([new Date(mv.ts).toLocaleString('vi-VN'), (MOVE_LBL[mv.type] || mv.type).replace(/^[^\w\sÀ-ỹ]+\s*/, ''), mv.kind === 'finished' ? 'Thành phẩm' : 'Vật tư', mv.itemId, mv.itemName || '', fmt(mv.qty), mv.unit || '', d.pxk || '', d.invoiceNo || '', d.docDate || '', d.party || '', d.origin || '', d.operator || '', mv.to || '', mv.note || '']);
   }
-  downloadCsv('ecosyntech-so-nhap-xuat-' + today() + '.csv', toCsv(rows));
-  window.showToast && window.showToast('✓ Đã xuất CSV sổ nhập-xuất', 'ok');
+  await saveCsv('ecosyntech-so-nhap-xuat-' + today() + '.csv', toCsv(rows));
 }
 
-function downloadTemplate() {
+async function downloadTemplate() {
   const rows = [
     ['Ten', 'Loai', 'DonVi', 'SoLuong', 'NgayCT', 'NhaCC', 'NguonGoc', 'GhiChu'],
     ['NPK 16-16-8', 'fertilizer', 'bao 50kg', '20', today(), 'Đại lý ABC', 'Bình Điền', 'Nhập đầu vụ'],
     ['Abamectin 3.6EC', 'pesticide', 'chai 1L', '12', today(), 'Cửa hàng BVTV X', '', ''],
   ];
-  downloadCsv('mau-nhap-vat-tu.csv', toCsv(rows));
-  window.showToast && window.showToast('✓ Đã tải mẫu CSV — điền rồi "Nhập từ CSV"', 'ok');
+  await saveCsv('mau-nhap-vat-tu.csv', toCsv(rows));
 }
 
 // Parser CSV gọn (hỗ trợ ô có dấu phẩy/xuống dòng trong ngoặc kép)
