@@ -85,6 +85,59 @@ export const materialsStore = {
   }
 };
 
+// ===== V5.1 — Inventory core: StockMovement (append-only) + thành phẩm =====
+// Lõi tổng quát theo EOP: Item (raw/finished/component) + chuyển động kho không sửa được.
+const MOVE_KEY = 'inv:moves';      // mảng chuyển động kho (append-only)
+const FINI_KEY = 'inv:finished';   // mảng thành phẩm (từ thu hoạch / sản xuất)
+
+export const inventoryStore = {
+  async movements() { return (await get(MOVE_KEY)) || []; },
+  async _move(mv) {
+    const all = (await get(MOVE_KEY)) || [];
+    const full = { id: 'mv_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), ts: Date.now(), ...mv };
+    all.unshift(full);
+    await set(MOVE_KEY, all.slice(0, 1000));
+    return full;
+  },
+  async finishedList() { return (await get(FINI_KEY)) || []; },
+  async finishedByLot(code) { return (await this.finishedList()).find(f => f.lotCode === code) || null; },
+
+  // Thu hoạch → nhập kho thành phẩm (gọi tự động trong lotStore.harvest)
+  async receiveFromHarvest(lot) {
+    const arr = await this.finishedList();
+    const qty = parseFloat(lot.harvest && lot.harvest.qty) || 0;
+    const unit = (lot.harvest && lot.harvest.unit) || 'kg';
+    let item = arr.find(f => f.lotCode === lot.code);
+    if (item) { item.qty = (parseFloat(item.qty) || 0) + qty; }
+    else {
+      item = {
+        id: 'fg_' + lot.code, lotCode: lot.code, lotId: lot.id,
+        name: lot.crop + (lot.variety ? ' ' + lot.variety : ''),
+        crop: lot.crop, variety: lot.variety || '',
+        qty, unit, harvestDate: lot.harvest && lot.harvest.date,
+        trace: lot.trace || {},      // mang theo hồ sơ chuẩn (PUC/GTIN/chuẩn áp dụng)
+        createdAt: Date.now(), status: 'in_stock'
+      };
+      arr.unshift(item);
+    }
+    await set(FINI_KEY, arr);
+    await this._move({ kind: 'finished', itemId: item.id, itemName: item.name, type: 'import', qty, unit, ref: lot.code, note: 'Thu hoạch lô ' + lot.code });
+    return item;
+  },
+  // Xuất thành phẩm (bán/giao)
+  async issueFinished(itemId, qty, note) {
+    const arr = await this.finishedList();
+    const it = arr.find(f => f.id === itemId);
+    if (!it) return null;
+    const q = parseFloat(qty) || 0;
+    it.qty = Math.max(0, (parseFloat(it.qty) || 0) - q);
+    if (it.qty === 0) it.status = 'out';
+    await set(FINI_KEY, arr);
+    await this._move({ kind: 'finished', itemId, itemName: it.name, type: 'export', qty: q, unit: it.unit, note: note || 'Xuất bán' });
+    return it;
+  },
+};
+
 // ===== Lô / Mùa vụ =====
 function pad2(n) { return String(n).padStart(2, '0'); }
 
@@ -207,6 +260,13 @@ export const lotStore = {
         }
       }
     }
+    // V5.1 — dùng vật tư → ghi xuất kho + trừ tồn (best-effort theo số liều)
+    if (evt.materialId && evt.dose) {
+      try {
+        await materialsStore.adjustStock(evt.materialId, -(parseFloat(evt.dose) || 0));
+        await inventoryStore._move({ kind: 'raw', itemId: evt.materialId, itemName: evt.materialName, type: 'export', qty: parseFloat(evt.dose) || 0, unit: evt.doseUnit || '', ref: lot.code, note: 'Dùng cho lô ' + lot.code });
+      } catch (_) {}
+    }
     const full = await this._appendEvent(lotId, evt);
     await this._save(lot);
     // Đồng bộ về journal hiện có của WLC (endpoint đã tồn tại) — lotId là field mở rộng
@@ -256,6 +316,8 @@ export const lotStore = {
     });
     await this._save(lot);
     this._syncLot(lot, 'harvest');
+    // V5.1 — tự đồng bộ sản lượng vào kho thành phẩm (truy xuất liền mạch)
+    try { await inventoryStore.receiveFromHarvest(lot); } catch (_) {}
     return lot;
   },
 

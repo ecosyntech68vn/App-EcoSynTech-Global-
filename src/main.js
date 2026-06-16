@@ -36,6 +36,7 @@ import { renderMore } from './pages/more.js';
 // V3.1 — Truy xuất nguồn gốc
 import { renderLots } from './pages/lots.js';
 import { renderMaterials } from './pages/materials.js';
+import { renderInventory } from './pages/inventory.js'; // V5.1 — Inventory module (EOP)
 
 // V4.0 — Plan gating + Rule Builder
 import { hasFeature, renderLockedPage } from './stores/plan.js';
@@ -70,6 +71,7 @@ const ROUTES = {
   // V3.1 — Truy xuất nguồn gốc
   lots: renderLots,
   materials: renderMaterials,
+  inventory: renderInventory, // V5.1
   // V4.0
   rules: renderRules
 };
