@@ -13,7 +13,7 @@ let _account = null;
 async function getSdk() {
   if (!_sdk) {
     try {
-      const mod = await import('@aptos-labs/ts-sdk');
+      const mod = await import(/* @vite-ignore */ '@aptos-labs' + '/ts-sdk');
       _sdk = mod;
     } catch {
       return null;

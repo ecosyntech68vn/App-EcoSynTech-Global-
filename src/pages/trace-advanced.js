@@ -1,5 +1,5 @@
 import { genealogyStore, processingStore, inspectionStore, coldChainStore } from '../stores/trace-advanced.js';
-import { escapeHtml as esc } from '../components/toast.js';
+function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 export async function renderTraceAdvanced() {
   const allProc = await processingStore.getAll();
@@ -74,9 +74,9 @@ export async function renderTraceAdvanced() {
       ${allProc.length === 0
         ? '<div class="empty" style="padding:20px;"><div class="ico">🏭</div><p>Chưa có mẻ chế biến nào.</p></div>'
         : allProc.slice(0, 30).map(p => `<div class="card" style="padding:10px;">
-            <div style="font-weight:600;">🏭 ${esc(p.name)}</div>
+            <div style="font-weight:600;">🏭 ${escapeHtml(p.name)}</div>
             <div style="font-size:12px;color:var(--c-text-muted);">${p.date} · Đầu vào: ${p.inputLots.map(i => i.lotId + ' (' + i.quantity + i.unit + ')').join(', ')}</div>
-            <div style="font-size:13px;margin-top:2px;">📦 → ${esc(p.outputProduct)}: <strong>${p.outputQuantity}${p.unit}</strong> ${p.cost ? '· 💰 ' + p.cost.toLocaleString('vi-VN') + 'đ' : ''}</div>
+            <div style="font-size:13px;margin-top:2px;">📦 → ${escapeHtml(p.outputProduct)}: <strong>${p.outputQuantity}${p.unit}</strong> ${p.cost ? '· 💰 ' + p.cost.toLocaleString('vi-VN') + 'đ' : ''}</div>
           </div>`).join('')}
     </div>
 
@@ -119,10 +119,10 @@ export async function renderTraceAdvanced() {
             const typeMap = { harvest: 'Thu hoạch', pre_shipment: 'Trước giao', incoming: 'Nhập kho', storage: 'Bảo quản' };
             return `<div class="card" style="padding:10px;">
               <div class="row">
-                <span style="font-weight:600;">📌 ${esc(i.lotId)}</span>
+                <span style="font-weight:600;">📌 ${escapeHtml(i.lotId)}</span>
                 <span style="font-size:11px;color:var(--c-text-muted);">${i.date}</span>
               </div>
-              <div style="font-size:12px;">${typeMap[i.type] || i.type} · ${resultMap[i.result] || i.result} ${i.grade ? '· ' + esc(i.grade) : ''}</div>
+              <div style="font-size:12px;">${typeMap[i.type] || i.type} · ${resultMap[i.result] || i.result} ${i.grade ? '· ' + escapeHtml(i.grade) : ''}</div>
               <div style="font-size:11px;color:var(--c-text-muted);margin-top:2px;">
                 ${i.ph != null ? 'pH ' + i.ph + ' · ' : ''}${i.brix != null ? 'Brix ' + i.brix + '% · ' : ''}${i.weight != null ? i.weight + 'g · ' : ''}${i.moisture != null ? 'Ẩm ' + i.moisture + '%' : ''}
               </div>
@@ -166,9 +166,9 @@ window.tadvSearchGenealogy = async () => {
   const container = document.getElementById('tadv-gen-result');
   container.innerHTML = `
     <div class="card" style="padding:10px;border-color:#F57F17;">
-      <div style="font-weight:600;">🌳 Phả hệ của ${esc(lotId)}</div>
-      ${tree.parents.length ? '<div style="margin-top:6px;"><strong>⬆ Lô nguồn (parent):</strong><br/>' + tree.parents.map(p => `📌 ${esc(p.lotId)} (${p.date})`).join('<br/>') + '</div>' : ''}
-      ${tree.children.length ? '<div style="margin-top:6px;"><strong>⬇ Lô con (child):</strong><br/>' + tree.children.map(c => `📌 ${esc(c.lotId)} (${c.date})`).join('<br/>') + '</div>' : ''}
+      <div style="font-weight:600;">🌳 Phả hệ của ${escapeHtml(lotId)}</div>
+      ${tree.parents.length ? '<div style="margin-top:6px;"><strong>⬆ Lô nguồn (parent):</strong><br/>' + tree.parents.map(p => `📌 ${escapeHtml(p.lotId)} (${p.date})`).join('<br/>') + '</div>' : ''}
+      ${tree.children.length ? '<div style="margin-top:6px;"><strong>⬇ Lô con (child):</strong><br/>' + tree.children.map(c => `📌 ${escapeHtml(c.lotId)} (${c.date})`).join('<br/>') + '</div>' : ''}
       ${!tree.parents.length && !tree.children.length ? '<div style="margin-top:6px;color:var(--c-text-muted);">Không có phả hệ — lô độc lập.</div>' : ''}
     </div>
   `;
@@ -260,11 +260,11 @@ window.tadvSearchCold = async () => {
   if (!logs.length) { container.innerHTML = '<div class="card-meta">Chưa có dữ liệu cold chain cho lô này.</div>'; return; }
   container.innerHTML = `
     <div class="card" style="padding:10px;border-color:#0288D1;">
-      <div style="font-weight:600;">❄️ Cold chain — ${esc(lotId)}</div>
+      <div style="font-weight:600;">❄️ Cold chain — ${escapeHtml(lotId)}</div>
       <div style="font-size:12px;color:var(--c-text-muted);">TB: ${summary.avgTemp}°C · Thấp: ${summary.minTemp}°C · Cao: ${summary.maxTemp}°C · ${summary.count} lần ghi</div>
       <div style="margin-top:4px;max-height:150px;overflow-y:auto;">
         ${logs.slice(0, 20).map(l => `<div style="font-size:11px;padding:2px 0;border-bottom:1px solid var(--c-border);">
-          ${l.date} · ${l.temp}°C ${l.humidity != null ? '· ' + l.humidity + '%RH' : ''} ${l.location ? '· ' + esc(l.location) : ''}
+          ${l.date} · ${l.temp}°C ${l.humidity != null ? '· ' + l.humidity + '%RH' : ''} ${l.location ? '· ' + escapeHtml(l.location) : ''}
         </div>`).join('')}
       </div>
     </div>

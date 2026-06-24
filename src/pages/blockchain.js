@@ -1,6 +1,6 @@
 import { blockchainStore } from '../stores/blockchain.js';
 import { authStore } from '../stores/auth.js';
-import { lotsStore } from '../db/trace.js';
+import { lotStore as lotsStore } from '../db/trace.js';
 import { logisticsStore, CARRIER_LIST } from '../stores/logistics.js';
 
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
