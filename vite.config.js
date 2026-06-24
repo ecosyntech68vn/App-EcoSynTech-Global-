@@ -31,5 +31,9 @@ export default {
       { find: 'capacitor-secure-storage-plugin', replacement: shimPath }
     ] : []
   },
-  server: { port: 5173, strictPort: true }
+  server: { port: 5173, strictPort: true },
+  test: {
+    include: ['src/**/*.test.js'],
+    environment: 'node'
+  }
 };

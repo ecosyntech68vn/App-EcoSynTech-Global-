@@ -1,15 +1,15 @@
-// Settings — V5.0.0-rc1
-// Base V4.1 stable + 2 V5 add-on:
-//   1) DEV mode (PIN 9999) → toggle tier capability + show debug info
-//   2) FCM toggle → opt-in FCM scaffold (chỉ active nếu plugin @capacitor/push-notifications cài runtime)
 import { authStore, validateServerUrl } from '../stores/auth.js';
 import { syncQueue } from '../stores/sync.js';
 import { bgsync } from '../stores/bgsync.js';
 import { PLANS } from '../stores/plan.js';
 import { pushStore } from '../stores/push.js';
 import { demoData } from '../db/demo.js';
+import { simulationStore } from '../stores/simulation.js';
+import { auditStore } from '../stores/audit.js';
 import { Filesystem, Directory } from '@capacitor/filesystem';
-import { get, set } from 'idb-keyval';
+import { Share } from '@capacitor/share';
+import { Capacitor } from '@capacitor/core';
+import { get, set, keys } from 'idb-keyval';
 
 const DEV_MODE_KEY = 'dev:mode_active';
 const FCM_KEY = 'push:fcm_enabled';
@@ -81,6 +81,30 @@ export async function renderSettings() {
           <button id="demo-seed" class="btn secondary" style="flex:1;">＋ Tạo dữ liệu mẫu</button>
           <button id="demo-clear" class="btn danger" style="flex:1;">Xoá dữ liệu mẫu</button>
         </div>
+      </div>
+
+      <hr style="margin:24px 0; border:0; border-top:1px solid var(--c-border);" />
+
+      <h3 style="margin:0 0 10px; font-size:14px;">🧪 Mô phỏng dữ liệu</h3>
+      <div style="padding:12px; border:1px dashed var(--c-border); border-radius:8px;">
+        <div class="card-meta" style="margin-bottom:8px;">Tạo dữ liệu cảm biến, cảnh báo, lịch giả lập để test giao diện khi chưa có thiết bị IoT.</div>
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+          <input id="sim-toggle" type="checkbox" style="width:auto;" />
+          <span><strong>Bật chế độ mô phỏng</strong></span>
+        </label>
+        <div class="card-meta" style="margin-top:6px;">Khi bật, sensor dashboard + overview sẽ hiển thị dữ liệu giả lập thay vì chờ thiết bị thật.</div>
+      </div>
+
+      <hr style="margin:24px 0; border:0; border-top:1px solid var(--c-border);" />
+
+      <h3 style="margin:0 0 10px; font-size:14px;">📦 Xuất / Nhập cấu hình</h3>
+      <div style="padding:12px; border:1px dashed var(--c-border); border-radius:8px;">
+        <div class="card-meta" style="margin-bottom:8px;">Export JSON toàn bộ cấu hình (schedules, rules) để backup hoặc chuyển thiết bị. Import để khôi phục.</div>
+        <div style="display:flex; gap:8px;">
+          <button id="cfg-export" class="btn secondary" style="flex:1;">⬇ Xuất JSON</button>
+          <button id="cfg-import-btn" class="btn secondary" style="flex:1;">⬆ Nhập JSON</button>
+        </div>
+        <input type="file" id="cfg-file" accept=".json,application/json" style="display:none;" />
       </div>
 
       <hr style="margin:24px 0; border:0; border-top:1px solid var(--c-border);" />
@@ -312,6 +336,73 @@ window.wire_settings = function() {
     if (!el) return;
     el.textContent = active ? 'FCM ACTIVE (token registered)' : 'FCM disabled — polling 30s active';
   }
+
+  // Mô phỏng
+  (async () => {
+    const simToggle = document.getElementById('sim-toggle');
+    if (!simToggle) return;
+    simToggle.checked = await simulationStore.isActive();
+    simToggle.addEventListener('change', async (e) => {
+      await simulationStore.setActive(e.target.checked);
+      window.showToast?.(e.target.checked ? '🧪 Mô phỏng BẬT — dữ liệu giả lập sẽ hiển thị' : '✓ Mô phỏng TẮT', '');
+      document.querySelector('[x-data]').__x?.$data?.nav?.('settings');
+    });
+  })();
+
+  // Xuất cấu hình JSON
+  document.getElementById('cfg-export')?.addEventListener('click', async () => {
+    const toast = (m, t) => window.showToast && window.showToast(m, t || '');
+    try {
+      const allKeys = await keys();
+      const prefixes = ['rule:', 'cache:schedules', 'cache:', 'schedule:', 'plan:', 'auth_cfg'];
+      const data = {};
+      for (const k of allKeys) {
+        if (typeof k === 'string' && prefixes.some(p => k.startsWith(p))) {
+          data[k] = await get(k);
+        }
+      }
+      data._exportedAt = new Date().toISOString();
+      data._version = '5.3.0';
+      const json = JSON.stringify(data, null, 2);
+      const filename = `farmos-config-${new Date().toISOString().slice(0, 10)}.json`;
+      const isNative = () => { try { return Capacitor.isNativePlatform && Capacitor.isNativePlatform(); } catch { return false; } };
+      if (!isNative()) {
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+        setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
+      } else {
+        await Filesystem.writeFile({ path: filename, data: json, directory: Directory.Cache, encoding: 'utf-8' });
+        const { uri } = await Filesystem.getUri({ directory: Directory.Cache, path: filename });
+        try { await Share.share({ title: filename, files: [uri] }); } catch (_) {}
+      }
+      toast('✓ Đã xuất cấu hình (' + Object.keys(data).length + ' keys)', 'ok');
+    } catch (e) { toast('✗ ' + e.message, 'err'); }
+  });
+
+  // Nhập cấu hình JSON
+  document.getElementById('cfg-import-btn')?.addEventListener('click', () => {
+    document.getElementById('cfg-file')?.click();
+  });
+  document.getElementById('cfg-file')?.addEventListener('change', async (e) => {
+    const toast = (m, t) => window.showToast && window.showToast(m, t || '');
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    try {
+      const text = await f.text();
+      const data = JSON.parse(text);
+      let count = 0;
+      for (const [k, v] of Object.entries(data)) {
+        if (k.startsWith('_')) continue;
+        await set(k, v);
+        count++;
+      }
+      await auditStore.logConfig({ action: 'import', status: 'ok', detail: `Import ${count} keys từ ${f.name}` });
+      toast('✓ Đã nhập ' + count + ' mục cấu hình', 'ok');
+      document.querySelector('[x-data]').__x?.$data?.nav?.('settings');
+    } catch (err) { toast('✗ Lỗi đọc JSON: ' + err.message, 'err'); }
+    e.target.value = '';
+  });
 
   // DEV mode unlock (PIN 9999)
   document.getElementById('dev-unlock')?.addEventListener('click', async () => {

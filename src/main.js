@@ -42,6 +42,10 @@ import { renderInventory } from './pages/inventory.js'; // V5.1 — Inventory mo
 import { hasFeature, renderLockedPage } from './stores/plan.js';
 import { renderRules } from './pages/rules.js';
 
+// V5.3 — Nâng cao
+import { renderOverview } from './pages/overview.js';
+import { renderAudit } from './pages/audit.js';
+
 import { showToast } from './components/toast.js';
 
 window.Alpine = Alpine;
@@ -73,7 +77,10 @@ const ROUTES = {
   materials: renderMaterials,
   inventory: renderInventory, // V5.1
   // V4.0
-  rules: renderRules
+  rules: renderRules,
+  // V5.3
+  overview: renderOverview,
+  audit: renderAudit
 };
 window.ROUTES = ROUTES;
 

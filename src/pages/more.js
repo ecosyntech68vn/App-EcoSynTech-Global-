@@ -31,6 +31,10 @@ export async function renderMore() {
     ${menuItem('sop', '📖', 'SOP — Quy trình', 'Quick reference')}
     ${menuItem('pest', '🐛', 'Báo sâu bệnh', 'Severity 1-5')}
 
+    <h3 style="padding:14px 16px 4px; color:var(--c-text-muted); font-size:13px; text-transform:uppercase;">V5.3 — Nâng cao</h3>
+    ${menuItem('overview', '📊', 'Tổng quan nông trại', 'Cảm biến · Cảnh báo · Thống kê nhanh')}
+    ${menuItem('audit', '📋', 'Nhật ký hoạt động', 'Lịch sử lệnh · Cấu hình · Xác thực')}
+
     <h3 style="padding:14px 16px 4px; color:var(--c-text-muted); font-size:13px; text-transform:uppercase;">Tiện ích</h3>
     <div class="card">
       <button id="zalo-share" class="btn secondary" style="width:100%;">📲 Chia sẻ alert qua Zalo</button>
@@ -43,7 +47,7 @@ export async function renderMore() {
     </div>
 
     <div style="text-align:center; padding:20px; color:var(--c-text-muted); font-size:12px;">
-      EcoSynTech Farm OS v5.2.0 · Tưới thông minh 4 chế độ (ETo/Kc) + Kho ERP (chứng từ · CSV) + Truy xuất GS1/VietGAP/EU/JGAP + Điều khiển thiết bị
+      EcoSynTech Farm OS v5.3.0 · Tổng quan · Audit · Mô phỏng · Export/Import cấu hình
     </div>
   `;
 }
