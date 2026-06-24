@@ -1,0 +1,15 @@
+[package]
+name = "FarmOSTrace"
+version = "1.0.0"
+description = "EcoSynTech Farm OS — Blockchain traceability for Vietnamese agricultural exports"
+authors = ["EcoSynTech Global"]
+
+[addresses]
+farmos = "_"
+
+[dev-addresses]
+
+[dependencies]
+AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework/", rev = "main" }
+
+[dev-dependencies]

@@ -1,6 +1,7 @@
 import { get, set } from 'idb-keyval';
 import { authStore } from './auth.js';
 import { auditStore } from './audit.js';
+import { aptosService, aptosConfig } from './aptos-service.js';
 
 const TX_KEY = 'aptos:transactions';
 const BATCH_KEY = 'aptos:batch_hashes';
@@ -56,10 +57,31 @@ export const blockchainStore = {
     if (!batchId) return null;
     const data = { batchId, gtin, productName, farmId: farmId || authStore.farmerId || 'local', zoneId, crop, quantity, unit, ts: Date.now() };
     const dataHash = await computeHash(data);
-    const tx = await this._createTx('batch_create', dataHash, { batchId, gtin, productName, crop });
+
+    // Try real Aptos first
+    if (aptosService.isConnected() || (await aptosConfig.isConfigured())) {
+      try {
+        const realTx = await aptosService.createBatch(batchId, gtin, productName, farmId || authStore.farmerId || '', crop || '', quantity || 0, unit || 'kg');
+        if (realTx.success) {
+          const tx = await this._createTx('batch_create', dataHash, { batchId, gtin, productName, crop, aptosTxHash: realTx.hash, version: realTx.version });
+          tx.hash = realTx.hash;
+          tx.version = realTx.version;
+          tx.vm_status = realTx.vmStatus;
+          tx.gas_used = realTx.gasUsed;
+          tx.onChain = true;
+          await this._storeTx(tx);
+          await this._storeBatchHash(batchId, tx);
+          await auditStore.logConfig({ action: 'blockchain_batch', status: 'ok', detail: `${productName} (${batchId}) → Aptos tx ${realTx.hash?.slice(0, 10)}` });
+          return tx;
+        }
+      } catch (_) { /* fallback to local */ }
+    }
+
+    // Fallback local
+    const tx = await this._createTx('batch_create', dataHash, { batchId, gtin, productName, crop, onChain: false });
     await this._storeTx(tx);
     await this._storeBatchHash(batchId, tx);
-    await auditStore.logConfig({ action: 'blockchain_batch', status: 'ok', detail: `${productName} (${batchId}) → ${tx.version}` });
+    await auditStore.logConfig({ action: 'blockchain_batch', status: 'ok', detail: `${productName} (${batchId}) → local ${tx.version}` });
     return tx;
   },
 
@@ -77,7 +99,24 @@ export const blockchainStore = {
     if (!batchId) return null;
     const data = { batchId, quantity, unit, grade, inspector, ph, brix, ts: Date.now() };
     const dataHash = await computeHash(data);
-    const tx = await this._createTx('harvest', dataHash, { batchId, quantity, grade });
+
+    if (aptosService.isConnected()) {
+      try {
+        const prevTx = (await this.getBatchHashes(batchId))[0];
+        const realTx = await aptosService.recordEvent(batchId, 'harvest', dataHash, prevTx?.hash || '', JSON.stringify({ quantity, grade }));
+        if (realTx.success) {
+          const tx = await this._createTx('harvest', dataHash, { batchId, quantity, grade, aptosTxHash: realTx.hash, version: realTx.version, onChain: true });
+          tx.hash = realTx.hash;
+          tx.onChain = true;
+          await this._storeTx(tx);
+          await this._updateBatchHash(batchId, tx);
+          await auditStore.logConfig({ action: 'blockchain_harvest', status: 'ok', detail: `${batchId}: ${quantity}${unit} → Aptos` });
+          return tx;
+        }
+      } catch (_) {}
+    }
+
+    const tx = await this._createTx('harvest', dataHash, { batchId, quantity, grade, onChain: false });
     await this._storeTx(tx);
     await this._updateBatchHash(batchId, tx);
     await auditStore.logConfig({ action: 'blockchain_harvest', status: 'ok', detail: `${batchId}: ${quantity}${unit} (${grade})` });
@@ -88,7 +127,23 @@ export const blockchainStore = {
     if (!batchId) return null;
     const data = { batchId, contractId, buyer, destination, quantity, unit, shippingCode, carrier, ts: Date.now() };
     const dataHash = await computeHash(data);
-    const tx = await this._createTx('export', dataHash, { batchId, buyer, destination, shippingCode, carrier });
+
+    if (aptosService.isConnected()) {
+      try {
+        const prevTx = (await this.getBatchHashes(batchId))[0];
+        const realTx = await aptosService.recordExport(batchId, buyer || '', destination || '', quantity || 0, dataHash, prevTx?.hash || '');
+        if (realTx.success) {
+          const tx = await this._createTx('export', dataHash, { batchId, buyer, destination, aptosTxHash: realTx.hash, onChain: true });
+          tx.hash = realTx.hash;
+          tx.onChain = true;
+          await this._storeTx(tx);
+          await this._updateBatchHash(batchId, tx);
+          return tx;
+        }
+      } catch (_) {}
+    }
+
+    const tx = await this._createTx('export', dataHash, { batchId, buyer, destination, shippingCode, carrier, onChain: false });
     await this._storeTx(tx);
     await this._updateBatchHash(batchId, tx);
     await auditStore.logConfig({ action: 'blockchain_export', status: 'ok', detail: `${batchId} → ${destination} (${buyer})` });
@@ -99,7 +154,21 @@ export const blockchainStore = {
     if (!batchId || !certType) return null;
     const data = { batchId, certType, certBody, certNumber, validUntil, ts: Date.now() };
     const dataHash = await computeHash(data);
-    const tx = await this._createTx('certification', dataHash, { batchId, certType, certBody, certNumber });
+
+    if (aptosService.isConnected()) {
+      try {
+        const realTx = await aptosService.recordCertification(batchId, certType, certBody, validUntil ? new Date(validUntil).getTime() / 1000 : 0, dataHash);
+        if (realTx.success) {
+          const tx = await this._createTx('certification', dataHash, { batchId, certType, certBody, certNumber, aptosTxHash: realTx.hash, onChain: true });
+          tx.hash = realTx.hash;
+          tx.onChain = true;
+          await this._storeTx(tx);
+          return tx;
+        }
+      } catch (_) {}
+    }
+
+    const tx = await this._createTx('certification', dataHash, { batchId, certType, certBody, certNumber, onChain: false });
     await this._storeTx(tx);
     await auditStore.logConfig({ action: 'blockchain_cert', status: 'ok', detail: `${batchId}: ${certType} (${certBody})` });
     return tx;
@@ -121,10 +190,20 @@ export const blockchainStore = {
   },
 
   async verifyHash(batchId, expectedHash) {
+    // Try real Aptos verification first
+    if (aptosService.isConnected()) {
+      try {
+        const realResult = await aptosService.verifyHash(batchId, expectedHash);
+        if (realResult.verified) return { verified: true, source: 'aptos_chain', txCount: await aptosService.getEventCount(batchId) };
+      } catch (_) {}
+    }
+
+    // Fallback local
     const txs = await this.getBatchChain(batchId);
     const match = txs.find(t => t.dataHash === expectedHash);
     return {
       verified: !!match,
+      source: match?.onChain ? 'aptos_cached' : 'local',
       transaction: match || null,
       txCount: txs.length,
       timestamp: match?.timestamp || null

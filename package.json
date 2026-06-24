@@ -37,7 +37,8 @@
     "chart.js": "^4.4.4",
     "idb-keyval": "^6.2.1",
     "jspdf": "^2.5.1",
-    "qrcode-generator": "^2.0.4"
+    "qrcode-generator": "^2.0.4",
+    "@aptos-labs/ts-sdk": "^2.0.0"
   },
   "devDependencies": {
     "@capacitor/cli": "^6.1.2",

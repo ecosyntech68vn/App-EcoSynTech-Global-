@@ -6,6 +6,7 @@ import { pushStore } from '../stores/push.js';
 import { demoData } from '../db/demo.js';
 import { simulationStore } from '../stores/simulation.js';
 import { auditStore } from '../stores/audit.js';
+import { aptosConfig, aptosService } from '../stores/aptos-service.js';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
@@ -93,6 +94,29 @@ export async function renderSettings() {
           <span><strong>Bật chế độ mô phỏng</strong></span>
         </label>
         <div class="card-meta" style="margin-top:6px;">Khi bật, sensor dashboard + overview sẽ hiển thị dữ liệu giả lập thay vì chờ thiết bị thật.</div>
+      </div>
+
+      <hr style="margin:24px 0; border:0; border-top:1px solid var(--c-border);" />
+
+      <h3 style="margin:0 0 10px; font-size:14px;">⛓ Aptos Blockchain</h3>
+      <div style="padding:12px; border:1px dashed #0288D1; border-radius:8px;">
+        <div class="card-meta" style="margin-bottom:8px;">Kết nối với Aptos testnet/mainnet để ghi dữ liệu truy xuất lên blockchain thật. Cần deploy Move contract trước (xem <code>aptos-contract/</code>).</div>
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom:6px;">
+          <input id="aptos-enabled" type="checkbox" style="width:auto;" />
+          <span><strong>🔗 Kết nối Aptos blockchain</strong></span>
+        </label>
+        <select id="aptos-network" class="form">
+          <option value="testnet">Aptos Testnet</option>
+          <option value="mainnet">Aptos Mainnet</option>
+        </select>
+        <input id="aptos-module-addr" class="form" placeholder="Module Address (ví dụ: 0x1234...)" />
+        <input id="aptos-private-key" class="form" type="password" placeholder="Private Key (Ed25519)" />
+        <div style="display:flex;gap:4px;margin-top:6px;">
+          <button id="aptos-connect" class="btn primary" style="flex:1;background:#0288D1;font-size:12px;">🔌 Kết nối</button>
+          <button id="aptos-fund" class="btn secondary" style="flex:1;font-size:12px;">💰 Faucet (testnet)</button>
+        </div>
+        <div id="aptos-status" style="margin-top:6px;font-size:12px;"></div>
+        <div id="aptos-balance" style="margin-top:4px;font-size:11px;color:var(--c-text-muted);"></div>
       </div>
 
       <hr style="margin:24px 0; border:0; border-top:1px solid var(--c-border);" />
@@ -403,6 +427,78 @@ window.wire_settings = function() {
     } catch (err) { toast('✗ Lỗi đọc JSON: ' + err.message, 'err'); }
     e.target.value = '';
   });
+
+  // Aptos Blockchain config
+  (async () => {
+    const cfg = await aptosConfig.load();
+    const enabledEl = document.getElementById('aptos-enabled');
+    const networkEl = document.getElementById('aptos-network');
+    const moduleAddrEl = document.getElementById('aptos-module-addr');
+    const privKeyEl = document.getElementById('aptos-private-key');
+    const statusEl = document.getElementById('aptos-status');
+    const balanceEl = document.getElementById('aptos-balance');
+
+    if (enabledEl) {
+      enabledEl.checked = cfg.enabled;
+      networkEl.value = cfg.network || 'testnet';
+      moduleAddrEl.value = cfg.moduleAddress || '';
+      privKeyEl.value = cfg.privateKey || '';
+
+      if (cfg.enabled) {
+        const conn = await aptosService.connect();
+        statusEl.innerHTML = conn.connected
+          ? '<span style="color:#2E7D32;">✅ Đã kết nối Aptos ' + cfg.network + ' — ' + conn.address.slice(0, 10) + '...</span>'
+          : '<span style="color:#c62828;">⚠ ' + (conn.reason || 'Kết nối thất bại') + '</span>';
+        if (conn.connected) {
+          const bal = await aptosService.getAccountBalance();
+          balanceEl.textContent = '💰 Số dư: ' + bal + ' APT';
+        }
+      }
+    }
+
+    document.getElementById('aptos-connect')?.addEventListener('click', async () => {
+      const enabled = enabledEl.checked;
+      const network = networkEl.value;
+      const moduleAddress = moduleAddrEl.value.trim();
+      const privateKey = privKeyEl.value.trim();
+
+      if (enabled && (!moduleAddress || !privateKey)) {
+        window.showToast?.('Nhập Module Address và Private Key', 'err');
+        return;
+      }
+
+      await aptosConfig.save({ enabled, network, moduleAddress, privateKey });
+
+      if (enabled) {
+        const conn = await aptosService.connect();
+        if (conn.connected) {
+          statusEl.innerHTML = '<span style="color:#2E7D32;">✅ Đã kết nối ' + network + ' — ' + conn.address.slice(0, 10) + '...</span>';
+          const bal = await aptosService.getAccountBalance();
+          balanceEl.textContent = '💰 Số dư: ' + bal + ' APT';
+          window.showToast?.('✅ Kết nối Aptos thành công!', 'ok');
+        } else {
+          statusEl.innerHTML = '<span style="color:#c62828;">⚠ ' + (conn.reason || 'Lỗi kết nối') + '</span>';
+          window.showToast?.('✗ ' + (conn.reason || 'Kết nối thất bại'), 'err');
+        }
+      } else {
+        await aptosService.disconnect();
+        statusEl.innerHTML = '<span style="color:#999;">⏸ Đã ngắt kết nối</span>';
+        balanceEl.textContent = '';
+        window.showToast?.('Đã ngắt kết nối Aptos', '');
+      }
+    });
+
+    document.getElementById('aptos-fund')?.addEventListener('click', async () => {
+      const result = await aptosService.fundTestnet();
+      if (result.success) {
+        window.showToast?.('✅ Đã nhận 1 APT từ faucet', 'ok');
+        const bal = await aptosService.getAccountBalance();
+        balanceEl.textContent = '💰 Số dư: ' + bal + ' APT';
+      } else {
+        window.showToast?.('✗ ' + (result.error || 'Faucet thất bại'), 'err');
+      }
+    });
+  })();
 
   // DEV mode unlock (PIN 9999)
   document.getElementById('dev-unlock')?.addEventListener('click', async () => {
