@@ -7,6 +7,7 @@ import { demoData } from '../db/demo.js';
 import { simulationStore } from '../stores/simulation.js';
 import { auditStore } from '../stores/audit.js';
 import { aptosConfig, aptosService } from '../stores/aptos-service.js';
+import { bankConfigStore } from '../stores/order.js';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
@@ -117,6 +118,23 @@ export async function renderSettings() {
         </div>
         <div id="aptos-status" style="margin-top:6px;font-size:12px;"></div>
         <div id="aptos-balance" style="margin-top:4px;font-size:11px;color:var(--c-text-muted);"></div>
+      </div>
+
+      <hr style="margin:24px 0; border:0; border-top:1px solid var(--c-border);" />
+
+      <h3 style="margin:0 0 10px; font-size:14px;">🏦 Ngân hàng (VietQR)</h3>
+      <div style="padding:12px; border:1px dashed #0288D1; border-radius:8px;">
+        <div class="card-meta" style="margin-bottom:8px;">Cấu hình tài khoản ngân hàng nhận thanh toán. Khi tạo đơn hàng, app sẽ tự sinh mã VietQR để khách quét chuyển khoản.</div>
+        <select id="bank-id" class="form">
+          <option value="">-- Chọn ngân hàng --</option>
+        </select>
+        <input id="bank-account-no" class="form" placeholder="Số tài khoản" />
+        <input id="bank-account-name" class="form" placeholder="Tên chủ tài khoản" />
+        <div style="display:flex;gap:4px;margin-top:6px;">
+          <button id="bank-save" class="btn primary" style="flex:1;background:#0288D1;font-size:12px;">💾 Lưu tài khoản</button>
+          <button id="bank-test-qr" class="btn secondary" style="flex:1;font-size:12px;">🔍 Xem thử QR</button>
+        </div>
+        <div id="bank-preview" style="margin-top:8px;text-align:center;display:none;"></div>
       </div>
 
       <hr style="margin:24px 0; border:0; border-top:1px solid var(--c-border);" />
@@ -497,6 +515,59 @@ window.wire_settings = function() {
       } else {
         window.showToast?.('✗ ' + (result.error || 'Faucet thất bại'), 'err');
       }
+    });
+  })();
+
+  // Bank config (VietQR)
+  (async () => {
+    const bankList = bankConfigStore.getBankList();
+    const sel = document.getElementById('bank-id');
+    const cfg = await bankConfigStore.load();
+    if (sel) {
+      sel.innerHTML = '<option value="">-- Chọn ngân hàng --</option>' +
+        bankList.map(b => `<option value="${b.id}" ${b.id === cfg.bankId ? 'selected' : ''}>${b.name}</option>`).join('');
+      document.getElementById('bank-account-no').value = cfg.accountNo || '';
+      document.getElementById('bank-account-name').value = cfg.accountName || '';
+    }
+
+    document.getElementById('bank-save')?.addEventListener('click', async () => {
+      const bankId = document.getElementById('bank-id').value;
+      const accountNo = document.getElementById('bank-account-no').value.trim();
+      const accountName = document.getElementById('bank-account-name').value.trim();
+      if (!bankId || !accountNo || !accountName) {
+        window.showToast?.('Nhập đầy đủ thông tin ngân hàng', 'err'); return;
+      }
+      await bankConfigStore.save({ bankId, accountNo, accountName });
+      window.showToast?.('✅ Đã lưu tài khoản ngân hàng', 'ok');
+    });
+
+    document.getElementById('bank-test-qr')?.addEventListener('click', () => {
+      const bankId = document.getElementById('bank-id').value;
+      const accountNo = document.getElementById('bank-account-no').value.trim();
+      const accountName = document.getElementById('bank-account-name').value.trim();
+      if (!bankId || !accountNo) { window.showToast?.('Chọn ngân hàng và nhập số tài khoản', 'err'); return; }
+      const bank = bankList.find(b => b.id === bankId);
+      if (!bank) return;
+      const preview = document.getElementById('bank-preview');
+      preview.style.display = '';
+      preview.innerHTML = '<div class="card-meta">🔄 Đang tạo QR...</div>';
+
+      import('qrcode-generator').then(qrMod => {
+        const qrcode = qrMod.default;
+        const content = `00020101021238540010${bank.bin}010211${accountNo}020808000000030600006304XXXX`;
+        const qr = qrcode(0, 'M');
+        qr.addData(content);
+        qr.make();
+        const dataUrl = qr.createDataURL(5, 4);
+        preview.innerHTML = `
+          <img src="${dataUrl}" style="width:180px;height:180px;image-rendering:pixelated;" />
+          <div class="card-meta" style="margin-top:4px;font-size:11px;">
+            ${escapeHtml(bank.name)} · ${escapeHtml(accountNo)}<br/>
+            <span style="color:#999;">(QR mẫu — số tiền và nội dung sẽ tự động điền khi tạo đơn)</span>
+          </div>`;
+      }).catch(() => {
+        preview.innerHTML = '<div class="card-meta" style="color:#c62828;">Không thể tạo QR</div>';
+      });
     });
   })();
 

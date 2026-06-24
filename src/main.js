@@ -55,6 +55,7 @@ import { renderTraceAdvanced } from './pages/trace-advanced.js';
 import { renderRecall } from './pages/recall.js';
 import { renderBlockchain } from './pages/blockchain.js';
 import { renderLogistics } from './pages/logistics.js';
+import { renderOrders } from './pages/orders.js';
 
 import { showToast } from './components/toast.js';
 
@@ -100,7 +101,8 @@ const ROUTES = {
   'trace-advanced': renderTraceAdvanced,
   recall: renderRecall,
   blockchain: renderBlockchain,
-  logistics: renderLogistics
+  logistics: renderLogistics,
+  orders: renderOrders
 };
 window.ROUTES = ROUTES;
 
