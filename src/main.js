@@ -56,6 +56,11 @@ import { renderRecall } from './pages/recall.js';
 import { renderBlockchain } from './pages/blockchain.js';
 import { renderLogistics } from './pages/logistics.js';
 import { renderOrders } from './pages/orders.js';
+import { renderForecast } from './pages/forecast.js';
+import { renderAiDiagnosis } from './pages/ai-diagnosis.js';
+
+import { themeStore, fontStore } from './stores/theme.js';
+import { langStore } from './stores/i18n.js';
 
 import { showToast } from './components/toast.js';
 
@@ -102,7 +107,9 @@ const ROUTES = {
   recall: renderRecall,
   blockchain: renderBlockchain,
   logistics: renderLogistics,
-  orders: renderOrders
+  orders: renderOrders,
+  forecast: renderForecast,
+  'ai-diagnosis': renderAiDiagnosis
 };
 window.ROUTES = ROUTES;
 
@@ -138,6 +145,10 @@ window.appRoot = function () {
         if (s.connected) syncQueue.processQueue();
       });
       if (this.authed) {
+        const theme = await themeStore.load();
+        themeStore.apply(theme);
+        const fontScale = await fontStore.load();
+        fontStore.apply(fontScale);
         await this.nav('dashboard');
         if (this.online) syncQueue.processQueue();
         // V1.1 — start push polling

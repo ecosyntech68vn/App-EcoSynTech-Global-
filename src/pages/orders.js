@@ -131,6 +131,7 @@ export async function renderOrders() {
           <option value="bank_transfer">🏦 Chuyển khoản (VietQR)</option>
           <option value="cod">💵 COD (tiền mặt)</option>
           <option value="momo">📱 MoMo</option>
+          <option value="zalopay">💳 ZaloPay</option>
         </select>
         <input id="ord-note" class="form" placeholder="Ghi chú đơn hàng" style="margin-top:4px;" />
         <div style="margin-top:8px;display:flex;justify-content:space-between;font-weight:600;">

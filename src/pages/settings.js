@@ -8,6 +8,9 @@ import { simulationStore } from '../stores/simulation.js';
 import { auditStore } from '../stores/audit.js';
 import { aptosConfig, aptosService } from '../stores/aptos-service.js';
 import { bankConfigStore } from '../stores/order.js';
+import { themeStore, fontStore } from '../stores/theme.js';
+import { langStore, t } from '../stores/i18n.js';
+import { rbacStore, ROLES } from '../stores/rbac.js';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
@@ -95,6 +98,53 @@ export async function renderSettings() {
           <span><strong>Bật chế độ mô phỏng</strong></span>
         </label>
         <div class="card-meta" style="margin-top:6px;">Khi bật, sensor dashboard + overview sẽ hiển thị dữ liệu giả lập thay vì chờ thiết bị thật.</div>
+      </div>
+
+      <hr style="margin:24px 0; border:0; border-top:1px solid var(--c-border);" />
+
+      <h3 style="margin:0 0 10px; font-size:14px;">🎨 Giao diện & Ngôn ngữ</h3>
+      <div style="padding:12px; border:1px dashed var(--c-border); border-radius:8px;">
+        <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px;">${t('theme_label')}</label>
+        <select id="set-theme" class="form">
+          <option value="light">☀️ ${t('theme_light')}</option>
+          <option value="dark">🌙 ${t('theme_dark')}</option>
+        </select>
+        <label style="display:block; font-size:12px; font-weight:600; margin:8px 0 4px;">${t('lang_label')}</label>
+        <select id="set-lang" class="form">
+          <option value="vi">🇻🇳 ${t('lang_vi')}</option>
+          <option value="en">🇬🇧 ${t('lang_en')}</option>
+        </select>
+        <label style="display:block; font-size:12px; font-weight:600; margin:8px 0 4px;">${t('font_label')}</label>
+        <div style="display:flex; gap:4px;">
+          <button class="btn secondary font-scale-btn" data-scale="80" style="flex:1;font-size:11px;padding:8px;">${t('font_small')}</button>
+          <button class="btn secondary font-scale-btn" data-scale="100" style="flex:1;font-size:11px;padding:8px;">${t('font_normal')}</button>
+          <button class="btn secondary font-scale-btn" data-scale="130" style="flex:1;font-size:11px;padding:8px;">${t('font_large')}</button>
+          <button class="btn secondary font-scale-btn" data-scale="160" style="flex:1;font-size:11px;padding:8px;">${t('font_xlarge')}</button>
+        </div>
+      </div>
+
+      <hr style="margin:24px 0; border:0; border-top:1px solid var(--c-border);" />
+
+      <h3 style="margin:0 0 10px; font-size:14px;">👤 Phân quyền</h3>
+      <div style="padding:12px; border:1px dashed var(--c-border); border-radius:8px;">
+        <div class="card-meta" style="margin-bottom:8px;">Chỉ chủ sở hữu mới thay đổi được vai trò. Phân quyền áp dụng cho mọi người dùng trên thiết bị này.</div>
+        <select id="set-role" class="form">
+          ${Object.entries(ROLES).map(([k, v]) => `<option value="${k}">${v.label} (cấp ${v.level})</option>`).join('')}
+        </select>
+        <div id="role-permissions" style="margin-top:6px;font-size:11px;color:var(--c-text-muted);"></div>
+      </div>
+
+      <hr style="margin:24px 0; border:0; border-top:1px solid var(--c-border);" />
+
+      <h3 style="margin:0 0 10px; font-size:14px;">🤖 AI Chẩn đoán sâu bệnh</h3>
+      <div style="padding:12px; border:1px dashed var(--c-border); border-radius:8px;">
+        <div class="card-meta" style="margin-bottom:8px;">
+          Chẩn đoán sâu bệnh qua ảnh bằng TensorFlow Lite. Hiện đang ở chế độ mô phỏng — cần tải mô hình .tflite để chạy thật.
+        </div>
+        <div style="display:flex; gap:4px; align-items:center;">
+          <span id="ai-model-status" style="font-size:12px;font-weight:600;">🧠 Mô hình: Chưa tải</span>
+          <button id="ai-load-model" class="btn secondary" style="flex:1;font-size:11px;padding:8px;">Tải mô hình AI</button>
+        </div>
       </div>
 
       <hr style="margin:24px 0; border:0; border-top:1px solid var(--c-border);" />
@@ -569,6 +619,92 @@ window.wire_settings = function() {
         preview.innerHTML = '<div class="card-meta" style="color:#c62828;">Không thể tạo QR</div>';
       });
     });
+  })();
+
+  // Theme toggle
+  (async () => {
+    const theme = await themeStore.load();
+    const sel = document.getElementById('set-theme');
+    if (sel) {
+      sel.value = theme;
+      themeStore.apply(theme);
+      sel.addEventListener('change', () => {
+        themeStore.save(sel.value);
+        window.showToast?.(sel.value === 'dark' ? '🌙 Dark mode ON' : '☀️ Light mode ON', 'ok');
+      });
+    }
+
+    const fontScale = await fontStore.load();
+    fontStore.apply(fontScale);
+    document.querySelectorAll('.font-scale-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const scale = parseInt(btn.dataset.scale);
+        fontStore.save(scale);
+        fontStore.apply(scale);
+        window.showToast?.('🔤 Cỡ chữ: ' + scale + '%', 'ok');
+      });
+    });
+
+    const lang = await langStore.load();
+    const langSel = document.getElementById('set-lang');
+    if (langSel) {
+      langSel.value = lang;
+      langSel.addEventListener('change', () => {
+        langStore.save(langSel.value);
+        window.showToast?.('🌐 ' + (langSel.value === 'en' ? 'English' : 'Tiếng Việt'), 'ok');
+        document.querySelector('[x-data]').__x?.$data?.nav?.('settings');
+      });
+    }
+  })();
+
+  // Phân quyền
+  (async () => {
+    const role = await rbacStore.loadRole();
+    const sel = document.getElementById('set-role');
+    const permEl = document.getElementById('role-permissions');
+    if (sel) {
+      sel.value = role;
+      updateRolePerms(sel.value);
+      sel.addEventListener('change', async () => {
+        await rbacStore.setRole(sel.value);
+        updateRolePerms(sel.value);
+        window.showToast?.('👤 Đã đổi vai trò: ' + (ROLES[sel.value]?.label || sel.value), 'ok');
+      });
+    }
+    function updateRolePerms(r) {
+      if (!permEl) return;
+      const cfg = ROLES[r];
+      if (!cfg) { permEl.textContent = ''; return; }
+      const count = cfg.can.includes('*') ? 'Tất cả quyền' : cfg.can.length + ' quyền';
+      permEl.textContent = `Cấp ${cfg.level} · ${count}`;
+    }
+  })();
+
+  // AI Model
+  (async () => {
+    const statusEl = document.getElementById('ai-model-status');
+    const loadBtn = document.getElementById('ai-load-model');
+    if (statusEl) {
+      try {
+        const { aiDiagnosisStore } = await import('../stores/ai-diagnosis.js');
+        if (aiDiagnosisStore.isModelLoaded()) {
+          statusEl.innerHTML = '🧠 Mô hình: ✅ Đã tải';
+        }
+        loadBtn?.addEventListener('click', async () => {
+          loadBtn.disabled = true;
+          loadBtn.textContent = 'Đang tải...';
+          try {
+            await aiDiagnosisStore.loadModel();
+            statusEl.innerHTML = '🧠 Mô hình: ✅ Đã tải';
+            window.showToast?.('✅ Đã tải mô hình AI (mô phỏng)', 'ok');
+          } catch (e) {
+            window.showToast?.('✗ ' + e.message, 'err');
+          }
+          loadBtn.disabled = false;
+          loadBtn.textContent = 'Tải mô hình AI';
+        });
+      } catch {}
+    }
   })();
 
   // DEV mode unlock (PIN 9999)

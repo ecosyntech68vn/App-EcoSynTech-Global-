@@ -50,9 +50,53 @@ export async function renderMore() {
     ${menuItem('trace-advanced', '🔍', 'Truy xuất nâng cao', 'Phả hệ lô · Chế biến · Kiểm định · Cold chain')}
     ${menuItem('recall', '🚨', 'Thu hồi sản phẩm', 'Truy xuất forward/backward · Xử lý vi phạm')}
 
+    <h3 style="padding:14px 16px 4px; color:var(--c-text-muted); font-size:13px; text-transform:uppercase;">V6.3 — Nâng cao</h3>
+    ${menuItem('forecast', '📈', 'Dự báo & Phân tích', 'Doanh thu · Sản lượng · AI dự đoán')}
+    ${menuItem('ai-diagnosis', '🤖', 'AI Chẩn đoán sâu bệnh', 'TensorFlow Lite · Ảnh → Chẩn đoán · Đề xuất xử lý')}
+
+    <h3 style="padding:14px 16px 4px; color:var(--c-text-muted); font-size:13px; text-transform:uppercase;">V6.3 — IoT & Server</h3>
+    <div class="card" style="cursor:pointer;" onclick="document.querySelector('[x-data]').__x.$data.nav('settings')">
+      <div class="row">
+        <div style="display:flex; gap:12px; align-items:center;">
+          <span style="font-size:28px;">🌐</span>
+          <div>
+            <div class="card-title">Kết nối IoT</div>
+            <div class="card-meta">MQTT · Modbus · Cảm biến thật (đã sẵn sàng)</div>
+          </div>
+        </div>
+        <span style="color:var(--c-text-muted); font-size:24px;">›</span>
+      </div>
+    </div>
+    <div class="card" style="cursor:pointer;" onclick="document.querySelector('[x-data]').__x.$data.nav('settings')">
+      <div class="row">
+        <div style="display:flex; gap:12px; align-items:center;">
+          <span style="font-size:28px;">☁️</span>
+          <div>
+            <div class="card-title">Đồng bộ Server</div>
+            <div class="card-meta">Node.js · PocketBase · API REST (scaffold sẵn)</div>
+          </div>
+        </div>
+        <span style="color:var(--c-text-muted); font-size:24px;">›</span>
+      </div>
+    </div>
+
     <h3 style="padding:14px 16px 4px; color:var(--c-text-muted); font-size:13px; text-transform:uppercase;">V5.3 — Tổng quan & Kiểm tra</h3>
     ${menuItem('overview', '📊', 'Tổng quan nông trại', 'Cảm biến · Cảnh báo · KPI')}
     ${menuItem('audit', '📋', 'Nhật ký hoạt động', 'Lịch sử lệnh · Cấu hình · Xác thực')}
+
+    <h3 style="padding:14px 16px 4px; color:var(--c-text-muted); font-size:13px; text-transform:uppercase;">📲 Zalo Mini App</h3>
+    <div class="card" onclick="window.open('https://zalo.me/s/ecosyntech','_system')" style="cursor:pointer;">
+      <div class="row">
+        <div style="display:flex; gap:12px; align-items:center;">
+          <span style="font-size:28px;">💬</span>
+          <div>
+            <div class="card-title">Zalo Mini App</div>
+            <div class="card-meta">Mở trên Zalo · Đặt hàng · Theo dõi đơn · CSKH</div>
+          </div>
+        </div>
+        <span style="color:var(--c-text-muted); font-size:24px;">›</span>
+      </div>
+    </div>
 
     <h3 style="padding:14px 16px 4px; color:var(--c-text-muted); font-size:13px; text-transform:uppercase;">Tiện ích</h3>
     <div class="card">
@@ -66,7 +110,7 @@ export async function renderMore() {
     </div>
 
     <div style="text-align:center; padding:20px; color:var(--c-text-muted); font-size:12px;">
-      EcoSynTech Farm OS v6.2.0 · Bán hàng · VietQR · Blockchain · Logistics · Tổng hợp · Truy xuất · Thu hồi
+      EcoSynTech Farm OS v6.3.0 · AI · IoT · Server · Dark mode · i18n · Role · Bán hàng · Blockchain
     </div>
   `;
 }

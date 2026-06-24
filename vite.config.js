@@ -11,8 +11,15 @@ export default {
     emptyOutDir: true,
     sourcemap: false,
     rollupOptions: {
-      output: { manualChunks: undefined },
-      // canvg + html2canvas pull core-js — exclude (jsPDF works without them for our text-only reports)
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/jspdf')) return 'pdf';
+          if (id.includes('node_modules/chart.js')) return 'chart';
+          if (id.includes('node_modules/qrcode-generator')) return 'qrcode';
+          if (id.includes('node_modules/canvg') || id.includes('node_modules/html2canvas') || id.includes('node_modules/dompurify')) return 'vendor-heavy';
+          if (id.includes('node_modules/idb-keyval') || id.includes('node_modules/alpinejs')) return 'core';
+        }
+      },
       external: ['canvg', 'html2canvas', 'dompurify']
     }
   },
