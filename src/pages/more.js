@@ -31,8 +31,15 @@ export async function renderMore() {
     ${menuItem('sop', '📖', 'SOP — Quy trình', 'Quick reference')}
     ${menuItem('pest', '🐛', 'Báo sâu bệnh', 'Severity 1-5')}
 
-    <h3 style="padding:14px 16px 4px; color:var(--c-text-muted); font-size:13px; text-transform:uppercase;">V5.3 — Nâng cao</h3>
-    ${menuItem('overview', '📊', 'Tổng quan nông trại', 'Cảm biến · Cảnh báo · Thống kê nhanh')}
+    <h3 style="padding:14px 16px 4px; color:var(--c-text-muted); font-size:13px; text-transform:uppercase;">V5.5 — Quản lý nông trại</h3>
+    ${menuItem('finance', '💰', 'Tài chính', 'Chi phí · Doanh thu · Lợi nhuận theo lô')}
+    ${menuItem('labor', '👷', 'Nhân công', 'Danh sách · Chấm công · Bảng lương')}
+    ${menuItem('equipment', '🔧', 'Thiết bị', 'Máy móc · Bảo trì · Nhiên liệu')}
+    ${menuItem('contract', '🤝', 'Hợp đồng / HTX', 'Bao tiêu · Liên kết · Giao hàng')}
+    ${menuItem('soil', '🌱', 'Thổ nhưỡng', 'pH · NPK · Chất hữu cơ theo zone')}
+
+    <h3 style="padding:14px 16px 4px; color:var(--c-text-muted); font-size:13px; text-transform:uppercase;">V5.3 — Tổng quan & Kiểm tra</h3>
+    ${menuItem('overview', '📊', 'Tổng quan nông trại', 'Cảm biến · Cảnh báo · KPI')}
     ${menuItem('audit', '📋', 'Nhật ký hoạt động', 'Lịch sử lệnh · Cấu hình · Xác thực')}
 
     <h3 style="padding:14px 16px 4px; color:var(--c-text-muted); font-size:13px; text-transform:uppercase;">Tiện ích</h3>
@@ -47,7 +54,7 @@ export async function renderMore() {
     </div>
 
     <div style="text-align:center; padding:20px; color:var(--c-text-muted); font-size:12px;">
-      EcoSynTech Farm OS v5.3.0 · Tổng quan · Audit · Mô phỏng · Export/Import cấu hình
+      EcoSynTech Farm OS v5.5.0 · Tài chính · Nhân công · Thiết bị · Hợp đồng · Thổ nhưỡng · Mô phỏng
     </div>
   `;
 }

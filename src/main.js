@@ -45,6 +45,11 @@ import { renderRules } from './pages/rules.js';
 // V5.3 — Nâng cao
 import { renderOverview } from './pages/overview.js';
 import { renderAudit } from './pages/audit.js';
+import { renderFinance } from './pages/finance.js';
+import { renderLabor } from './pages/labor.js';
+import { renderEquipment } from './pages/equipment.js';
+import { renderContract } from './pages/contract.js';
+import { renderSoil } from './pages/soil.js';
 
 import { showToast } from './components/toast.js';
 
@@ -80,7 +85,12 @@ const ROUTES = {
   rules: renderRules,
   // V5.3
   overview: renderOverview,
-  audit: renderAudit
+  audit: renderAudit,
+  finance: renderFinance,
+  labor: renderLabor,
+  equipment: renderEquipment,
+  contract: renderContract,
+  soil: renderSoil
 };
 window.ROUTES = ROUTES;
 
