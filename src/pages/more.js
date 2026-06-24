@@ -38,6 +38,10 @@ export async function renderMore() {
     ${menuItem('contract', '🤝', 'Hợp đồng / HTX', 'Bao tiêu · Liên kết · Giao hàng')}
     ${menuItem('soil', '🌱', 'Thổ nhưỡng', 'pH · NPK · Chất hữu cơ theo zone')}
 
+    <h3 style="padding:14px 16px 4px; color:var(--c-text-muted); font-size:13px; text-transform:uppercase;">V6.0 — Blockchain & Logistics</h3>
+    ${menuItem('blockchain', '⛓', 'Blockchain Trace (Aptos)', 'GS1 Digital Link · On-chain proof · SHA-256 hash')}
+    ${menuItem('logistics', '🚚', 'Vận chuyển', 'VNPost · ViettelPost · Tracking · COD')}
+
     <h3 style="padding:14px 16px 4px; color:var(--c-text-muted); font-size:13px; text-transform:uppercase;">V5.6 — Liên kết & Báo cáo tổng hợp</h3>
     ${menuItem('consolidated', '📊', 'Báo cáo tổng hợp', 'Tổng tài sản · P&L · Tồn kho · KPI tích hợp')}
     ${menuItem('trace-advanced', '🔍', 'Truy xuất nâng cao', 'Phả hệ lô · Chế biến · Kiểm định · Cold chain')}
@@ -59,7 +63,7 @@ export async function renderMore() {
     </div>
 
     <div style="text-align:center; padding:20px; color:var(--c-text-muted); font-size:12px;">
-      EcoSynTech Farm OS v5.5.0 · Tài chính · Nhân công · Thiết bị · Hợp đồng · Thổ nhưỡng · Mô phỏng
+      EcoSynTech Farm OS v6.0.0 · Blockchain Aptos · GS1 · Logistics · Tổng hợp · Truy xuất · Thu hồi
     </div>
   `;
 }

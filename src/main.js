@@ -53,6 +53,8 @@ import { renderSoil } from './pages/soil.js';
 import { renderConsolidated } from './pages/consolidated.js';
 import { renderTraceAdvanced } from './pages/trace-advanced.js';
 import { renderRecall } from './pages/recall.js';
+import { renderBlockchain } from './pages/blockchain.js';
+import { renderLogistics } from './pages/logistics.js';
 
 import { showToast } from './components/toast.js';
 
@@ -96,7 +98,9 @@ const ROUTES = {
   soil: renderSoil,
   consolidated: renderConsolidated,
   'trace-advanced': renderTraceAdvanced,
-  recall: renderRecall
+  recall: renderRecall,
+  blockchain: renderBlockchain,
+  logistics: renderLogistics
 };
 window.ROUTES = ROUTES;
 
