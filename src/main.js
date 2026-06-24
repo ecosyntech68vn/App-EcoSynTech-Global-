@@ -50,6 +50,9 @@ import { renderLabor } from './pages/labor.js';
 import { renderEquipment } from './pages/equipment.js';
 import { renderContract } from './pages/contract.js';
 import { renderSoil } from './pages/soil.js';
+import { renderConsolidated } from './pages/consolidated.js';
+import { renderTraceAdvanced } from './pages/trace-advanced.js';
+import { renderRecall } from './pages/recall.js';
 
 import { showToast } from './components/toast.js';
 
@@ -90,7 +93,10 @@ const ROUTES = {
   labor: renderLabor,
   equipment: renderEquipment,
   contract: renderContract,
-  soil: renderSoil
+  soil: renderSoil,
+  consolidated: renderConsolidated,
+  'trace-advanced': renderTraceAdvanced,
+  recall: renderRecall
 };
 window.ROUTES = ROUTES;
 

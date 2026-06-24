@@ -38,6 +38,11 @@ export async function renderMore() {
     ${menuItem('contract', '🤝', 'Hợp đồng / HTX', 'Bao tiêu · Liên kết · Giao hàng')}
     ${menuItem('soil', '🌱', 'Thổ nhưỡng', 'pH · NPK · Chất hữu cơ theo zone')}
 
+    <h3 style="padding:14px 16px 4px; color:var(--c-text-muted); font-size:13px; text-transform:uppercase;">V5.6 — Liên kết & Báo cáo tổng hợp</h3>
+    ${menuItem('consolidated', '📊', 'Báo cáo tổng hợp', 'Tổng tài sản · P&L · Tồn kho · KPI tích hợp')}
+    ${menuItem('trace-advanced', '🔍', 'Truy xuất nâng cao', 'Phả hệ lô · Chế biến · Kiểm định · Cold chain')}
+    ${menuItem('recall', '🚨', 'Thu hồi sản phẩm', 'Truy xuất forward/backward · Xử lý vi phạm')}
+
     <h3 style="padding:14px 16px 4px; color:var(--c-text-muted); font-size:13px; text-transform:uppercase;">V5.3 — Tổng quan & Kiểm tra</h3>
     ${menuItem('overview', '📊', 'Tổng quan nông trại', 'Cảm biến · Cảnh báo · KPI')}
     ${menuItem('audit', '📋', 'Nhật ký hoạt động', 'Lịch sử lệnh · Cấu hình · Xác thực')}
