@@ -4,6 +4,7 @@
 import { fallbackFetch } from '../api/fallback-client.js';
 import { syncQueue } from '../stores/sync.js';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { requestPhotoPermission, showPermissionGuide } from '../lib/camera-permission.js';
 
 export async function renderPest() {
   return `
@@ -74,6 +75,9 @@ window.wire_pest = function() {
   let aiResult = null;
 
   document.getElementById('pest-photo')?.addEventListener('click', async () => {
+    // Kiểm tra quyền camera trước
+    const pPerm = await requestPhotoPermission();
+    if (!pPerm.granted) { showPermissionGuide('photo'); return; }
     try {
       const p = await Camera.getPhoto({
         quality: 70, resultType: CameraResultType.Uri,

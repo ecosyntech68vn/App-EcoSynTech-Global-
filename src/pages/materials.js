@@ -3,6 +3,7 @@
 // phân bón: NPK/dạng). PHI giữ chuẩn VietGAP. Tồn kho: qty + nhập/xuất + cảnh báo sắp hết.
 import { materialsStore, inventoryStore } from '../db/trace.js';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { requestPhotoPermission, showPermissionGuide } from '../lib/camera-permission.js';
 
 const TYPE_LBL = { fertilizer: '🧪 Phân bón', pesticide: '☠️ Thuốc BVTV', other: '📦 Khác' };
 
@@ -131,6 +132,8 @@ window.wire_materials = function() {
 
   // Chụp ảnh nhãn
   document.getElementById('mat-photo')?.addEventListener('click', async () => {
+    const pPerm = await requestPhotoPermission();
+    if (!pPerm.granted) { showPermissionGuide('photo'); return; }
     try {
       const photo = await Camera.getPhoto({ quality: 70, allowEditing: false, resultType: CameraResultType.Uri, source: CameraSource.Camera, width: 1280 });
       const uri = photo.webPath || photo.path;

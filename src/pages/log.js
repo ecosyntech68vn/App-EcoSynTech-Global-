@@ -6,6 +6,7 @@ import { fallbackFetch } from '../api/fallback-client.js';
 import { syncQueue } from '../stores/sync.js';
 import { lotStore, materialsStore } from '../db/trace.js';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { requestPhotoPermission, showPermissionGuide } from '../lib/camera-permission.js';
 import { Geolocation } from '@capacitor/geolocation';
 import { get, set } from 'idb-keyval';
 
@@ -235,6 +236,8 @@ window.wire_log = function() {
   // ===== Ảnh =====
   let lastPhotoUri = null;
   document.getElementById('take-photo')?.addEventListener('click', async () => {
+    const pPerm = await requestPhotoPermission();
+    if (!pPerm.granted) { showPermissionGuide('photo'); return; }
     try {
       const photo = await Camera.getPhoto({ quality: 70, allowEditing: false, resultType: CameraResultType.Uri, source: CameraSource.Camera, width: 1280 });
       lastPhotoUri = photo.webPath || photo.path;

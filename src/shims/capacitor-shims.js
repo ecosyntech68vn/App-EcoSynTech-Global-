@@ -26,7 +26,11 @@ export const Network = {
 
 export const App = { addListener(){return {remove(){}}} };
 
-export const Camera = { async getPhoto(){return {webPath:'', path:''}} };
+export const Camera = {
+  async getPhoto(){return {webPath:'', path:''}},
+  async checkPermissions(){return {camera:'granted'}},
+  async requestPermissions(){return {camera:'granted'}}
+};
 export const CameraResultType = { Uri:'uri', Base64:'base64', DataUrl:'dataUrl' };
 export const CameraSource = { Camera:'CAMERA', Photos:'PHOTOS' };
 
