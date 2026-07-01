@@ -62,15 +62,15 @@ export async function renderMarket() {
         </select>
         <label>Số lượng</label>
         <div style="display:flex;gap:8px;">
-          <input name="qty" type="number" step="0.1" required placeholder="Số lượng" style="flex:2;" />
+          <input name="qty" type="number" inputmode="decimal" step="0.1" required placeholder="Số lượng" style="flex:2;" />
           <select name="unit" style="flex:1;"><option>kg</option><option>thùng</option><option>bó</option><option>tấn</option></select>
         </div>
         <label>Đơn giá (₫)</label>
-        <input name="price" type="number" placeholder="VD: 15000" />
+        <input name="price" type="number" inputmode="numeric" placeholder="VD: 15000" />
         <label>Khách hàng</label>
         <input name="customerName" placeholder="Tên khách hàng" />
         <label>Số điện thoại</label>
-        <input name="customerPhone" placeholder="SĐT" />
+        <input name="customerPhone" type="tel" inputmode="numeric" pattern="[0-9+\s]+" placeholder="SĐT" />
         <label>Địa chỉ giao</label>
         <input name="customerAddr" placeholder="Địa chỉ" />
         <button type="submit" class="btn" style="margin-top:10px;">🛒 Tạo đơn + QR thanh toán</button>

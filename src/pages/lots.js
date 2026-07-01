@@ -37,7 +37,7 @@ async function renderLotList() {
           <label>Xã viên (HTX)</label>
           <select name="memberId" id="lot-member"><option value="">— Không —</option></select>
           <label>Diện tích</label>
-          <input name="area" placeholder="500 m², 0.2 ha..." />
+          <input name="area" inputmode="text" placeholder="500 m², 0.2 ha..." />
           <label>Ngày xuống giống</label>
           <input name="plantedAt" type="date" value="${new Date().toISOString().slice(0,10)}" />
           <label>Ghi chú</label>
@@ -188,7 +188,7 @@ async function renderLotDetail(lotId) {
             <div id="evt-material-list">
               <div class="evt-mat-row" style="display:flex;gap:8px;margin:4px 0;">
                 <select name="materialId" class="evt-material" style="flex:3;"></select>
-                <input name="dose" placeholder="Liều" style="flex:1;" />
+                <input name="dose" inputmode="decimal" placeholder="Liều" style="flex:1;" />
                 <input name="doseUnit" placeholder="Đơn vị" style="flex:1;" />
                 <button type="button" class="btn small" onclick="window.evtAddMat()" style="font-size:16px;">＋</button>
               </div>
@@ -412,7 +412,7 @@ window.wire_lots = function() {
     row.style.cssText = 'display:flex;gap:8px;margin:4px 0;';
     row.innerHTML = `
       <select name="materialId" class="evt-material" style="flex:3;"></select>
-      <input name="dose" placeholder="Liều" style="flex:1;" />
+      <input name="dose" inputmode="decimal" placeholder="Liều" style="flex:1;" />
       <input name="doseUnit" placeholder="Đơn vị" style="flex:1;" />
       <button type="button" class="btn small" onclick="this.parentElement.remove()" style="font-size:14px;">✕</button>`;
     list.appendChild(row);

@@ -491,8 +491,9 @@ export const lotStore = {
     if (!lot) throw new Error('Không tìm thấy lô');
     if (lot.status === 'closed') throw new Error('Lô đã đóng — không ghi thêm được');
     // Kiểm tra sự kiện không xảy ra trước ngày xuống giống
+    // FIX V7.0.1: parse plantedAt ở local timezone (không UTC) để khớp với datetime-local input
     const eventTs = evt.ts || Date.now();
-    const plantTime = lot.plantedAt ? new Date(lot.plantedAt).getTime() : 0;
+    const plantTime = lot.plantedAt ? new Date(lot.plantedAt + 'T00:00:00').getTime() : 0;
     if (plantTime > 0 && eventTs < plantTime) {
       throw new Error(`Không thể ghi sự kiện trước ngày xuống giống (${lot.plantedAt}). Sự kiện: ${new Date(eventTs).toLocaleDateString('vi-VN')}. Vào lô để sửa ngày.`);
     }
