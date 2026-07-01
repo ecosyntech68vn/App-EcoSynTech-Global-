@@ -80,7 +80,7 @@ window.wire_report = function() {
 
     // Footer
     doc.setFontSize(8); doc.setTextColor(150);
-    doc.text(`Generated ${new Date().toISOString()}  ·  EcoSynTech Farm OS v3.0.0`, 14, 290);
+    doc.text(`Generated ${new Date().toISOString()}  ·  EcoSynTech Farm OS v7.0.2`, 14, 290);
 
     doc.save(`ecosyntech-report-${type}-${new Date().toISOString().slice(0,10)}.pdf`);
     window.showToast && window.showToast('✓ Đã tải PDF', 'ok');

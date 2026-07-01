@@ -253,7 +253,7 @@ export async function renderSettings() {
       </div>
 
       <p style="text-align:center; margin-top:30px; font-size:12px; color:var(--c-text-muted);">
-        EcoSynTech Farm OS v5.0.0-rc1<br/>Build ${new Date().toISOString().slice(0,10)}
+        EcoSynTech Farm OS v7.0.2<br/>Build ${new Date().toISOString().slice(0,10)}
       </p>
     </div>
   `;

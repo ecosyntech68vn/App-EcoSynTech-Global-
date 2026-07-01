@@ -46,7 +46,7 @@ export async function renderLogin() {
           <button type="button" class="btn secondary" id="test-conn">Test kết nối</button>
         </div>
         <p style="margin-top:14px; font-size:12px; color:var(--c-text-muted); text-align:center;">
-          v4.0.0 · Offline-first · Frugal · Human-centric
+          v7.0.2 · NFC · Voice · CHợ HTX · Carbon Credits · IoT ESP32
         </p>
       </form>
     </div>

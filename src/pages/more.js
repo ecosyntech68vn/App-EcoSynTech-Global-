@@ -116,7 +116,7 @@ export async function renderMore() {
     </div>
 
     <div style="text-align:center; padding:20px; color:var(--c-text-muted); font-size:12px;">
-      EcoSynTech Farm OS v7.0.0 · NFC · Voice Journal · CHợ HTX Online · Carbon Credits · IoT ESP32 · AI · Blockchain
+      EcoSynTech Farm OS v7.0.2 · NFC · Voice · CHợ HTX · Carbon Credits · IoT ESP32
     </div>
   `;
 }
