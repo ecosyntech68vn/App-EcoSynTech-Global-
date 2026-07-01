@@ -1,7 +1,7 @@
 {
   "name": "ecosyntech-farmos-mobile",
-  "version": "5.2.0",
-  "description": "EcoSynTech Farm OS — Mobile App V5.2.0 (Tưới thông minh 4 chế độ khớp web v6.1: cảm biến/lịch/lịch+cảm biến/theo cây ETo·Kc + khung giờ tránh trưa; Kho ERP nhập–xuất–tồn + CSV; truy xuất GS1/VietGAP/EU/JGAP)",
+  "version": "7.0.0",
+  "description": "EcoSynTech Farm OS — Mobile App V7.0.0 (NFC Tap-to-Trace · Voice journal · Lịch thời vụ theo vùng miền · CHợ HTX Online · PHI Badge · Tín chỉ carbon lúa AWD · IoT ESP32 PCB · Tưới thông minh 4 chế độ · Truy xuất GS1/VietGAP/EU/JGAP)",
   "type": "module",
   "scripts": {
     "dev": "vite",

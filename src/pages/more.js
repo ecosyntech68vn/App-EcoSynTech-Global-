@@ -9,10 +9,14 @@ export async function renderMore() {
     </div>
 
     <h3 style="padding:14px 16px 4px; color:var(--c-text-muted); font-size:13px; text-transform:uppercase;">V3.1 — Truy xuất nguồn gốc</h3>
-    ${menuItem('lots', '🌾', 'Lô / Mùa vụ + QR', 'Truy xuất nguồn gốc · PHI lock')}
-    ${menuItem('seasonal', '📅', 'Lịch mùa vụ & Luân canh', 'Gantt · Gợi ý luân canh theo zone')}
+    ${menuItem('lots', '🌾', 'Lô / Mùa vụ + QR', 'Truy xuất nguồn gốc · PHI lock · NFC tag')}
+    ${menuItem('seasonal', '📅', 'Lịch mùa vụ & Luân canh', 'Gantt · Gợi ý luân canh theo zone + vùng miền')}
     ${menuItem('materials', '📦', 'Vật tư + PHI', 'Phân bón · Thuốc BVTV · tồn kho')}
     ${menuItem('inventory', '🏬', 'Kho — Nhập · Xuất · Tồn', 'Chứng từ · tồn an toàn · CSV · thu hoạch→tồn')}
+
+    <h3 style="padding:14px 16px 4px; color:var(--c-text-muted); font-size:13px; text-transform:uppercase;">V6.6 — Tính năng mới</h3>
+    ${menuItem('market', '🛍️', 'CHợ HTX Online', 'Bán hàng · QR truy xuất tích hợp sẵn')}
+    ${menuItem('carbon', '🌿', 'Tín chỉ carbon lúa AWD', 'Tính giảm phát thải · Báo cáo carbon')}
 
     <h3 style="padding:14px 16px 4px; color:var(--c-text-muted); font-size:13px; text-transform:uppercase;">V1.1 — Core+</h3>
     ${menuItem('control', '⚡', 'Điều khiển thiết bị', '2-step confirm')}
@@ -112,7 +116,7 @@ export async function renderMore() {
     </div>
 
     <div style="text-align:center; padding:20px; color:var(--c-text-muted); font-size:12px;">
-      EcoSynTech Farm OS v6.3.0 · AI · IoT · Server · Dark mode · i18n · Role · Bán hàng · Blockchain
+      EcoSynTech Farm OS v7.0.0 · NFC · Voice Journal · CHợ HTX Online · Carbon Credits · IoT ESP32 · AI · Blockchain
     </div>
   `;
 }

@@ -63,6 +63,10 @@ import { renderAiDiagnosis } from './pages/ai-diagnosis.js';
 import { renderSeasonal } from './pages/seasonal.js';
 import { renderMembers } from './pages/members.js';
 
+// V6.6
+import { renderMarket } from './pages/market.js';
+import { renderCarbon } from './pages/carbon.js';
+
 import { themeStore, fontStore } from './stores/theme.js';
 import { langStore } from './stores/i18n.js';
 
@@ -116,7 +120,10 @@ const ROUTES = {
   'ai-diagnosis': renderAiDiagnosis,
   // V6.5
   seasonal: renderSeasonal,
-  members: renderMembers
+  members: renderMembers,
+  // V6.6
+  market: renderMarket,
+  carbon: renderCarbon
 };
 window.ROUTES = ROUTES;
 

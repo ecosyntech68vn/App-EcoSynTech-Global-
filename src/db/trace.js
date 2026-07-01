@@ -604,6 +604,8 @@ export const lotStore = {
       by: authStore.farmerId || 'local-farmer',
       phiOverridden: !!(phi.locked && overridePhi)
     };
+    // PHI Badge: đạt chuẩn nếu thu hoạch đúng PHI (không override)
+    lot.phibadge = !phi.locked || !overridePhi;
     await this._appendEvent(lotId, {
       type: 'harvest',
       note: `Thu hoạch ${qty || '?'} ${unit || 'kg'}` + (phi.locked && overridePhi ? ` ⚠ OVERRIDE PHI bởi ${authStore.role} (còn ${phi.daysLeft} ngày cách ly — ${phi.source})` : '')

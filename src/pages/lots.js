@@ -196,7 +196,9 @@ async function renderLotDetail(lotId) {
             <div id="evt-phi-warn" class="card-meta" style="color:#c62828;"></div>
           </div>
           <label>Ghi chú</label>
-          <textarea name="note"></textarea>
+          <textarea name="note" id="voice-note" placeholder="Hoặc dùng giọng nói..."></textarea>
+          <button id="voice-record-btn" type="button" class="btn secondary" style="margin-top:4px;width:100%;">🎤 Ghi nhật ký bằng giọng nói</button>
+          <div id="voice-status" style="font-size:12px;margin-top:2px;color:var(--c-text-muted);"></div>
           <button type="submit" class="btn" style="margin-top:10px;">Ghi sự kiện</button>
         </form>
       </details>
@@ -231,8 +233,12 @@ async function renderLotDetail(lotId) {
         <button class="btn small" onclick="navigator.clipboard.writeText('${escapeHtml(lotStore.traceUrl(lot))}');window.showToast?.('✓ Copied VI link','ok')" style="font-size:10px;margin-top:4px;">📋 Copy VI link</button>
         <button class="btn small" onclick="navigator.clipboard.writeText('${escapeHtml(lotStore.traceUrl(lot, null, 'en'))}');window.showToast?.('✓ Copied EN link','ok')" style="font-size:10px;">📋 Copy EN link</button>
       </div>
-      <button id="lot-pdf" class="btn" style="margin-top:12px; width:100%;">📄 Xuất Phiếu truy xuất (PDF)</button>
+      <button id="lot-nfc-write" class="btn secondary" style="margin-top:8px; width:100%;">📱 Ghi NFC tag — truy xuất 1 chạm</button>
+      <div id="lot-nfc-status" style="font-size:12px;text-align:center;margin-top:4px;color:var(--c-text-muted);"></div>
+      <button id="lot-pdf" class="btn" style="margin-top:8px; width:100%;">📄 Xuất Phiếu truy xuất (PDF)</button>
       <button id="lot-pdf-en" class="btn secondary" style="margin-top:6px; width:100%;">🌍 Export Traceability Certificate (EN)</button>
+      ${lot.phibadge ? `<div class="card ok" style="margin-top:8px;text-align:center;"><span style="font-size:28px;">🏅</span><div style="font-weight:700;color:#2E7D32;">Đã kiểm soát PHI — An toàn thực phẩm</div><div class="card-meta">Lô này tuân thủ thời gian cách ly (PHI) theo chuẩn VietGAP</div></div>` : ''}
+      ${(!lot.phibadge && lot.status === 'harvested' && !lot.harvest?.phiOverridden) ? `<div class="card ok" style="margin-top:8px;text-align:center;"><div style="font-weight:600;color:#2E7D32;">✅ Đạt chuẩn PHI — không tồn dư BVTV</div></div>` : ''}
     </div>` : ''}
 
     <!-- Budget card -->
@@ -508,6 +514,70 @@ window.wire_lots = function() {
     this.value = formatPUC(this.value);
   });
 
+  // NFC write
+  document.getElementById('lot-nfc-write')?.addEventListener('click', async () => {
+    const statusEl = document.getElementById('lot-nfc-status');
+    try {
+      const { nfcStore } = await import('../stores/nfc.js');
+      const lot = await lotStore.byId(currentLotId);
+      const traceUrl = lotStore.traceUrl(lot);
+      statusEl.textContent = '📱 Đưa điện thoại lại gần tag NFC...';
+      await nfcStore.writeTag(lot.code, traceUrl);
+      statusEl.textContent = '✅ Đã ghi NFC tag thành công!';
+      window.showToast?.('✓ Đã ghi NFC tag', 'ok');
+    } catch (err) {
+      if (err.message?.includes('NFC không khả dụng')) {
+        statusEl.textContent = '⚠ NFC không khả dụng trên thiết bị này (cần Chrome Android)';
+      } else {
+        statusEl.textContent = '✗ ' + err.message;
+        window.showToast?.('✗ ' + err.message, 'err');
+      }
+    }
+  });
+
+  // Voice journal
+  const voiceBtn = document.getElementById('voice-record-btn');
+  const voiceStatus = document.getElementById('voice-status');
+  if (voiceBtn) {
+    voiceBtn.addEventListener('click', async () => {
+      const { voiceStore } = await import('../stores/voice.js');
+      if (!voiceStore.isSupported()) {
+        voiceStatus.textContent = '⚠ Trình duyệt không hỗ trợ ghi giọng nói (cần Chrome)';
+        return;
+      }
+      try {
+        voiceBtn.disabled = true;
+        voiceBtn.textContent = '🎤 Đang nghe...';
+        voiceStatus.textContent = 'Đang nghe — hãy nói nội dung nhật ký...';
+        const transcript = await voiceStore.startListening('vi-VN');
+        const parsed = voiceStore.parse(transcript);
+        voiceStatus.textContent = `✓ Nhận dạng: "${transcript}"`;
+        // Điền thông tin vào form
+        const noteEl = document.getElementById('voice-note');
+        if (noteEl) noteEl.value = transcript;
+        const typeSel = document.getElementById('evt-type');
+        if (typeSel && parsed.type !== 'other') typeSel.value = parsed.type;
+        if (parsed.dose) {
+          const doseEl = document.querySelector('.evt-mat-row [name="dose"]');
+          if (doseEl) doseEl.value = parsed.dose;
+        }
+        if (parsed.doseUnit) {
+          const unitEl = document.querySelector('.evt-mat-row [name="doseUnit"]');
+          if (unitEl) unitEl.value = parsed.doseUnit;
+        }
+        window.showToast?.('✓ Đã nhận dạng giọng nói', 'ok');
+      } catch (err) {
+        voiceStatus.textContent = '✗ ' + err.message;
+        window.showToast?.('✗ ' + err.message, 'err');
+      } finally {
+        voiceBtn.disabled = false;
+        voiceBtn.textContent = '🎤 Ghi nhật ký bằng giọng nói';
+        const { voiceStore } = await import('../stores/voice.js');
+        voiceStore.stopListening();
+      }
+    });
+  }
+
   // Phiếu truy xuất PDF — render canvas (full tiếng Việt) → jsPDF
   document.getElementById('lot-pdf')?.addEventListener('click', async () => {
     try {
@@ -715,6 +785,9 @@ async function exportTracePdf(lot, events, en = false) {
     line(TX.harvestDate, lot.harvest.date, true);
     line(TX.yield, `${lot.harvest.qty} ${lot.harvest.unit}`, true);
     if (lot.harvest.phiOverridden) line('⚠ ' + TX.phiWarn, '', true);
+    else if (lot.phibadge !== false) {
+      line('🏅 PHI Badge', '✅ Đạt chuẩn — không tồn dư BVTV (tuân thủ thời gian cách ly)', true);
+    }
   }
   line(TX.link, lotStore.traceUrl(lot));
 

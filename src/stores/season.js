@@ -149,3 +149,121 @@ export const seasonStore = {
     };
   }
 };
+
+// ===== Vùng miền & lịch thời vụ thông minh =====
+
+// Mùa vụ theo vùng miền (Nam Bộ, Trung Bộ, Bắc Bộ)
+const REGION_SEASONS = {
+  'nam-bo': {
+    label: 'Nam Bộ',
+    provinces: ['An Giang','Bạc Liêu','Bến Tre','Bình Dương','Bình Phước','Bình Thuận','Cà Mau','Cần Thơ','Đồng Nai','Đồng Tháp','Hậu Giang','TP.HCM','Kiên Giang','Long An','Ninh Thuận','Sóc Trăng','Tây Ninh','Tiền Giang','Trà Vinh','Vĩnh Long','Bà Rịa-Vũng Tàu'],
+    cropCalendar: {
+      'Lúa': [
+        { season: 'Đông Xuân', startMonth: 11, endMonth: 2, note: 'Vụ chính, năng suất cao nhất' },
+        { season: 'Hè Thu', startMonth: 4, endMonth: 7, note: 'Vụ ngắn ngày, né lũ' },
+        { season: 'Thu Đông', startMonth: 7, endMonth: 10, note: 'Vùng có đê bao' }
+      ],
+      'Rau muống': [
+        { season: 'Chính vụ', startMonth: 2, endMonth: 10, note: 'Trồng quanh năm, tốt nhất T2-T10' }
+      ],
+      'Cà chua': [
+        { season: 'Thu Đông', startMonth: 9, endMonth: 12, note: 'Né mưa, ít sâu bệnh' },
+        { season: 'Xuân Hè', startMonth: 1, endMonth: 4, note: 'Cần che mưa' }
+      ],
+      'Dưa hấu': [
+        { season: 'Tết', startMonth: 10, endMonth: 12, note: 'Phục vụ Tết Nguyên Đán' }
+      ],
+      'Sầu riêng': [
+        { season: 'Chính vụ', startMonth: 4, endMonth: 8, note: 'Mùa nghịch: T11-T2 (kích thích)' }
+      ],
+      'Xoài': [
+        { season: 'Chính vụ', startMonth: 2, endMonth: 5, note: 'Có thể xử lý ra hoa nghịch vụ' }
+      ],
+    }
+  },
+  'trung-bo': {
+    label: 'Trung Bộ',
+    provinces: ['Đà Nẵng','Quảng Nam','Quảng Ngãi','Bình Định','Phú Yên','Khánh Hòa','Thừa Thiên-Huế','Quảng Trị','Quảng Bình','Hà Tĩnh','Nghệ An','Thanh Hóa'],
+    cropCalendar: {
+      'Lúa': [
+        { season: 'Đông Xuân', startMonth: 10, endMonth: 1, note: 'Vụ chính, né lũ' },
+        { season: 'Hè Thu', startMonth: 4, endMonth: 7, note: 'Chủ động nước tưới' }
+      ],
+      'Rau muống': [
+        { season: 'Xuân Hè', startMonth: 3, endMonth: 8, note: 'Trồng sau rét' }
+      ],
+      'Cà chua': [
+        { season: 'Thu Đông', startMonth: 8, endMonth: 11, note: 'Né lũ' }
+      ],
+      'Dưa hấu': [
+        { season: 'Xuân Hè', startMonth: 2, endMonth: 5, note: 'Né mưa bão' }
+      ],
+    }
+  },
+  'bac-bo': {
+    label: 'Bắc Bộ',
+    provinces: ['Hà Nội','Hải Phòng','Hải Dương','Hưng Yên','Thái Bình','Nam Định','Ninh Bình','Hà Nam','Vĩnh Phúc','Bắc Ninh','Bắc Giang','Thái Nguyên','Lạng Sơn','Quảng Ninh','Phú Thọ','Tuyên Quang','Hòa Bình','Sơn La','Điện Biên','Lai Châu','Lào Cai','Yên Bái','Hà Giang','Cao Bằng'],
+    cropCalendar: {
+      'Lúa': [
+        { season: 'Xuân', startMonth: 2, endMonth: 6, note: 'Vụ chính miền Bắc' },
+        { season: 'Mùa', startMonth: 6, endMonth: 10, note: 'Vụ mùa, ứng phó rét cuối vụ' }
+      ],
+      'Rau muống': [
+        { season: 'Hè', startMonth: 4, endMonth: 9, note: 'Sau rét' }
+      ],
+      'Cà chua': [
+        { season: 'Vụ đông', startMonth: 8, endMonth: 12, note: 'Cây vụ đông đặc sản' }
+      ],
+      'Ngô': [
+        { season: 'Xuân', startMonth: 2, endMonth: 6, note: 'Vụ chính' },
+        { season: 'Đông', startMonth: 9, endMonth: 12, note: 'Ngô đông' }
+      ],
+    }
+  }
+};
+
+export function getRegionRegion(province) {
+  if (!province) return null;
+  for (const [key, reg] of Object.entries(REGION_SEASONS)) {
+    if (reg.provinces.some(p => province.toLowerCase().includes(p.toLowerCase()))) {
+      return key;
+    }
+  }
+  return null;
+}
+
+export function getRegionSeasons(regionKey) {
+  return REGION_SEASONS[regionKey] || null;
+}
+
+export function getCropAdviceForRegion(regionKey, crop) {
+  const region = REGION_SEASONS[regionKey];
+  if (!region) return [];
+  const now = new Date().getMonth() + 1; // 1-12
+  const calendar = region.cropCalendar;
+  if (!calendar) return [];
+
+  // Find matching crop
+  const lower = crop.toLowerCase().trim();
+  const entry = Object.entries(calendar).find(([k]) => lower.includes(k.toLowerCase()));
+  if (!entry) return { current: null, all: entry?.[1] || null };
+
+  const [cropName, seasons] = entry;
+  const current = seasons.find(s => {
+    if (s.startMonth <= s.endMonth) {
+      return now >= s.startMonth && now <= s.endMonth;
+    } else {
+      return now >= s.startMonth || now <= s.endMonth;
+    }
+  });
+
+  return { current: current || null, all: seasons, cropName };
+}
+
+export function listAllRegions() {
+  return Object.entries(REGION_SEASONS).map(([key, r]) => ({
+    key,
+    label: r.label,
+    provinceCount: r.provinces.length
+  }));
+}
