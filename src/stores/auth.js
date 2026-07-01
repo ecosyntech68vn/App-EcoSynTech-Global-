@@ -14,6 +14,8 @@ const DEFAULT_PIN = '1234';
 const PIN_SALT = 'ecosyntech-farmos-v3-pin-salt-2026';
 const LOGIN_TIMEOUT_MS = 6000; // 6s timeout — fail fast if server unreachable
 
+let _pinRecordCache = null; // RAM cache tránh gọi SecureStorage liên tục
+
 const PRIVATE_HOST_RE = /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/;
 
 // FIX #3 — chặn gửi token qua kênh không mã hoá ra ngoài LAN
@@ -137,10 +139,12 @@ export const authStore = {
   },
 
   async _getPinRecord() {
+    if (_pinRecordCache) return _pinRecordCache;
     const value = await secureStore.get(PIN_SECURE_KEY);
-    if (value) return value;
+    if (value) { _pinRecordCache = value; return value; }
     // chưa migrate? đọc legacy
     const { value: legacy } = await Preferences.get({ key: PIN_KEY });
+    if (legacy) _pinRecordCache = legacy;
     return legacy || null;
   },
 
@@ -149,7 +153,9 @@ export const authStore = {
   async seedDefaultPinIfEmpty() {
     if (await this._getPinRecord()) return false;
     const hash = await hashPin(DEFAULT_PIN);
-    await secureStore.set(PIN_SECURE_KEY, JSON.stringify({ hash, v: 2, seededAt: new Date().toISOString() }));
+    const record = JSON.stringify({ hash, v: 2, seededAt: new Date().toISOString() });
+    await secureStore.set(PIN_SECURE_KEY, record);
+    _pinRecordCache = record;
     return true; // seeded
   },
 
@@ -157,8 +163,14 @@ export const authStore = {
     return !!(await this._getPinRecord());
   },
 
-  async changePin(newPin) {
-    if (!/^[0-9]{4,6}$/.test(String(newPin))) throw new Error('PIN phải 4-6 chữ số');
+  async changePin(oldPin, newPin) {
+    if (!/^[0-9]{4,6}$/.test(String(newPin))) throw new Error('PIN mới phải 4-6 chữ số');
+    const value = await this._getPinRecord();
+    if (!value) throw new Error('PIN chưa khởi tạo');
+    let stored;
+    try { stored = JSON.parse(value); } catch { throw new Error('PIN store hỏng'); }
+    const oldHash = await hashPin(oldPin);
+    if (oldHash !== stored.hash) throw new Error('PIN cũ không đúng');
     const hash = await hashPin(newPin);
     await secureStore.set(PIN_SECURE_KEY, JSON.stringify({ hash, v: 2, changedAt: new Date().toISOString() }));
   },

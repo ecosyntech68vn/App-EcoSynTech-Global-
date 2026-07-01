@@ -214,6 +214,8 @@ window.appRoot = function () {
     },
     async nav(page) {
       this.page = page;
+      // Cleanup page-specific resources before switching
+      if (window.__dashboardCleanup) window.__dashboardCleanup();
       let html = '';
       try {
         // V4.0 — màn bị khoá theo gói → hiện upsell thay vì nội dung

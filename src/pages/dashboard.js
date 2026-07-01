@@ -5,6 +5,11 @@ import { get, set } from 'idb-keyval';
 const CACHE_KEY = 'cache:sensors:latest';
 let pollTimer = null;
 
+// Cleanup any existing poll timer (gọi từ wire_dashboard hoặc trước render)
+function clearPollTimer() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+}
+
 export async function renderDashboard() {
   // Try fresh fetch, fallback to cache
   let data = null;
@@ -25,7 +30,7 @@ export async function renderDashboard() {
   const zones = normalize(data);
 
   // Setup polling (5s) when page active
-  if (pollTimer) clearInterval(pollTimer);
+  clearPollTimer();
   pollTimer = setInterval(async () => {
     if (document.hidden) return;
     try {
@@ -123,7 +128,9 @@ function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;'
 window.wire_dashboard = function() {
   document.getElementById('refresh-dash')?.addEventListener('click', () => {
     window.dispatchEvent(new CustomEvent('reload-dashboard'));
-    // Simple: trigger re-render
     document.querySelector('[x-data]')?.__x?.$data?.nav?.('dashboard');
   });
 };
+
+// Cleanup poll timer when navigating away (gọi từ main.js nav hook)
+window.__dashboardCleanup = clearPollTimer;

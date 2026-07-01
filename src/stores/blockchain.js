@@ -7,15 +7,6 @@ const TX_KEY = 'aptos:transactions';
 const BATCH_KEY = 'aptos:batch_hashes';
 const MAX_TX = 2000;
 
-function sha256(data) {
-  const encoder = new TextEncoder();
-  const bytes = encoder.encode(typeof data === 'string' ? data : JSON.stringify(data));
-  const hashBuffer = crypto.subtle ? null : null; // fallback below
-  return crypto.subtle
-    ? Array.from(new Uint8Array(encoder.encode(data)), b => b.toString(16).padStart(2, '0')).join('')
-    : btoa(String(data)).slice(0, 32);
-}
-
 async function computeHash(data) {
   const str = typeof data === 'string' ? data : JSON.stringify(data);
   const encoder = new TextEncoder();

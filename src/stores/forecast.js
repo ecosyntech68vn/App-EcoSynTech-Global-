@@ -20,7 +20,7 @@ export const forecastStore = {
     }
 
     const months = Object.entries(byMonth).sort((a, b) => a[0].localeCompare(b[0]));
-    const trend = months.length >= 2
+    const trend = months.length >= 2 && months[0][1] !== 0
       ? (months[months.length - 1][1] / months[0][1] - 1) * 100
       : 0;
 
@@ -42,7 +42,8 @@ export const forecastStore = {
     const avgYield = harvestLots.length > 0 ? totalYield / harvestLots.length : 0;
 
     const activeLots = lots.filter(l => !l.harvest);
-    const estYield = activeLots.length * avgYield;
+    const DEFAULT_YIELD_PER_LOT = 50; // kg — fallback khi chưa có dữ liệu
+    const estYield = activeLots.length * (avgYield > 0 ? avgYield : DEFAULT_YIELD_PER_LOT);
 
     const byCrop = {};
     for (const l of harvestLots) {

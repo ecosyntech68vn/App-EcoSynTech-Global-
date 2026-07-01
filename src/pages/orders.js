@@ -267,7 +267,11 @@ window.orderTab = function (tab) {
   if (el) el.style.display = 'none';
 
   document.querySelectorAll('[onclick*="orderTab"]').forEach(b => {
-    b.className = 'btn ' + (b.textContent.includes(tab === 'list' ? 'Đơn hàng' : tab === 'create' ? 'Tạo đơn' : 'Thống kê' && tab === 'stats') ? 'primary' : 'secondary');
+    const txt = b.textContent;
+    const isActive = (tab === 'list' && txt.includes('Đơn hàng')) ||
+                     (tab === 'create' && txt.includes('Tạo đơn')) ||
+                     (tab === 'stats' && txt.includes('Thống kê'));
+    b.className = 'btn ' + (isActive ? 'primary' : 'secondary');
   });
 };
 

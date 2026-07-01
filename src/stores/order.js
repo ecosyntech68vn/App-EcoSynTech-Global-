@@ -1,4 +1,4 @@
-import { get, set, keys } from 'idb-keyval';
+import { get, set, del, keys } from 'idb-keyval';
 import { authStore } from './auth.js';
 
 const ORDER_PREFIX = 'order:';
@@ -71,19 +71,26 @@ export const bankConfigStore = {
 
 export const orderStore = {
   async nextCode() {
-    const seq = ((await get(SEQ_KEY)) || 1000) + 1;
-    await set(SEQ_KEY, seq);
+    // Chỉ generate code — KHÔNG lưu seq (tránh mất seq nếu create thất bại)
     const d = new Date();
     const yy = String(d.getFullYear()).slice(2);
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     const dd = String(d.getDate()).padStart(2, '0');
-    return `ORD-${yy}${mm}${dd}-${seq}`;
+    const seq = ((await get(SEQ_KEY)) || 1000) + 1;
+    return { code: `ORD-${yy}${mm}${dd}-${seq}`, seq };
   },
 
   async create({ code, customer, items, totalAmount, note, paymentMethod }) {
+    let orderCode = code;
+    let _seq;
+    if (!orderCode) {
+      const r = await this.nextCode();
+      orderCode = r.code;
+      _seq = r.seq;
+    }
     const order = {
       id: 'ord_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-      code: code || (await this.nextCode()),
+      code: orderCode,
       createdAt: new Date().toISOString(),
       status: 'pending',
       customer: customer || { name: '', phone: '', address: '' },
@@ -111,6 +118,8 @@ export const orderStore = {
     }
 
     await set(ORDER_PREFIX + order.id, order);
+    // Chỉ persist seq sau khi save thành công
+    if (_seq) await set(SEQ_KEY, _seq);
     return order;
   },
 
@@ -152,15 +161,7 @@ export const orderStore = {
   },
 
   async delete(id) {
-    const allKeys = await keys();
-    if (allKeys.includes(ORDER_PREFIX + id)) {
-      await set(ORDER_PREFIX + id, null);
-      await set(ORDER_PREFIX + id, undefined);
-      try {
-        const del = await import('idb-keyval').then(m => m.del);
-        await del(ORDER_PREFIX + id);
-      } catch { }
-    }
+    await del(ORDER_PREFIX + id);
   },
 
   async saveCustomer(customer) {

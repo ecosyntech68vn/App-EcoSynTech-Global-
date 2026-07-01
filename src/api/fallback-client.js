@@ -72,13 +72,16 @@ async function cloudFetch(path, opts = {}) {
     action,
     path,
     method,
-    payload,
-    token: authStore.token,
-    farmerId: authStore.farmerId
+    payload
   });
+  const headers = {
+    'Content-Type': 'text/plain',
+    ...(authStore.token ? { 'X-Auth-Token': authStore.token } : {}),
+    ...(authStore.farmerId ? { 'X-Farmer-Id': authStore.farmerId } : {})
+  };
   return withTimeout(fetch(authStore.cloudUrl, {
     method: 'POST',
-    headers: { 'Content-Type': 'text/plain' }, // GAS-friendly
+    headers,
     body
   }), TIMEOUT_MS * 2);
 }

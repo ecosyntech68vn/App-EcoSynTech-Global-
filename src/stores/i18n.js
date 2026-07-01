@@ -132,8 +132,14 @@ const LANG = {
   }
 };
 
-export function t(key, lang) {
-  const map = LANG[lang] || LANG.vi;
+let _currentLang = 'vi';
+
+export function setLang(lang) {
+  _currentLang = lang || 'vi';
+}
+
+export function t(key) {
+  const map = LANG[_currentLang] || LANG.vi;
   return map[key] || key;
 }
 
@@ -143,10 +149,13 @@ export function getLang(l) {
 
 export const langStore = {
   async load() {
-    return (await get(KEY)) || 'vi';
+    const lang = (await get(KEY)) || 'vi';
+    setLang(lang);
+    return lang;
   },
   async save(lang) {
     await set(KEY, lang);
+    setLang(lang);
   },
   getLanguages() {
     return Object.entries(LANG).map(([k, v]) => ({ id: k, name: v._name }));

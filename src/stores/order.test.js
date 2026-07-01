@@ -86,8 +86,6 @@ describe('orderStore', () => {
   it('should calculate stats', async () => {
     await orderStore.create({ code: 'ORD-S1', customer: { name: 'A', phone: '1' }, items: [], totalAmount: 100000, note: '' });
     await orderStore.create({ code: 'ORD-S2', customer: { name: 'B', phone: '2' }, items: [], totalAmount: 200000, note: '' });
-    const order2 = await (await import('idb-keyval')).get('order:' + (await orderStore.nextCode()).replace('ORD-S2', ''));
-    const mod = await import('../stores/order.js');
     const orders = await orderStore.list();
     if (orders.length >= 2) {
       await orderStore.updateStatus(orders[0].id, 'paid');

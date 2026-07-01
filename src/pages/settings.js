@@ -242,6 +242,7 @@ export async function renderSettings() {
 
       <div style="margin-top:14px; padding:12px; border:1px solid var(--c-border); border-radius:8px;">
         <div style="font-size:13px; font-weight:600; margin-bottom:8px;">Đổi PIN (Local)</div>
+        <input id="old-pin" type="password" inputmode="numeric" pattern="[0-9]{4,6}" maxlength="6" placeholder="PIN hiện tại" style="margin-bottom:6px;" />
         <input id="new-pin" type="password" inputmode="numeric" pattern="[0-9]{4,6}" maxlength="6" placeholder="PIN mới 4-6 số" style="margin-bottom:6px;" />
         <input id="new-pin2" type="password" inputmode="numeric" pattern="[0-9]{4,6}" maxlength="6" placeholder="Nhập lại PIN mới" />
         <button id="change-pin-btn" class="btn secondary" style="margin-top:8px; width:100%;">Đổi PIN</button>
@@ -374,12 +375,15 @@ window.wire_settings = function() {
   });
 
   document.getElementById('change-pin-btn')?.addEventListener('click', async () => {
+    const old = document.getElementById('old-pin').value.trim();
     const p1 = document.getElementById('new-pin').value.trim();
     const p2 = document.getElementById('new-pin2').value.trim();
-    if (!/^[0-9]{4,6}$/.test(p1)) { window.showToast?.('PIN phải 4-6 chữ số', 'err'); return; }
+    if (!old) { window.showToast?.('Nhập PIN hiện tại', 'err'); return; }
+    if (!/^[0-9]{4,6}$/.test(p1)) { window.showToast?.('PIN mới phải 4-6 chữ số', 'err'); return; }
     if (p1 !== p2) { window.showToast?.('PIN xác nhận không khớp', 'err'); return; }
     try {
-      await authStore.changePin(p1);
+      await authStore.changePin(old, p1);
+      document.getElementById('old-pin').value = '';
       document.getElementById('new-pin').value = '';
       document.getElementById('new-pin2').value = '';
       window.showToast?.('✓ Đã đổi PIN. Dùng PIN mới lần đăng nhập sau.', 'ok');
