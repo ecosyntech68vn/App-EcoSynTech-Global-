@@ -18,6 +18,7 @@ Xem file [docs/HUONG_DAN_TRIEN_KHAI.md](docs/HUONG_DAN_TRIEN_KHAI.md) — hướ
 - Dùng từ xa qua Tailscale VPN
 - Build APK Android
 - Hướng dẫn sử dụng các tính năng chính
+- Chi tiết từng chức năng: [docs/HUONG_DAN_SU_DUNG.md](docs/HUONG_DAN_SU_DUNG.md)
 
 ## Highlights V6.3
 
