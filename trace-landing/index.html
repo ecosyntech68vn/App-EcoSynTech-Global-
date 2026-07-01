@@ -171,6 +171,25 @@ body::before{
    ===================================================================== */
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbzj0t4VjEeDdEntmQ0vxeJSLQ3lU4M4H_3p9w7bbJmCxqf9l04dGiInKZK8LDjK2VvL/exec';
 
+// GS1 Digital Link pattern: /01/{GTIN}/10/{LOT}
+// https://ecosyntech.com/trace/01/GTIN/10/LOT
+function parseGS1Path(path) {
+  const m = path.match(/\/01\/(\d{13,14})\/10\/([^\/\?#]+)/);
+  if (m) return { gtin: m[1], lot: decodeURIComponent(m[2]), serial: '' };
+  const m2 = path.match(/\/01\/(\d{13,14})/);
+  if (m2) return { gtin: m2[1], lot: '', serial: '' };
+  return null;
+}
+
+// Validate GTIN-13 check digit
+function checkGTIN(gtin) {
+  if (!gtin || !/^\d{13,14}$/.test(gtin)) return false;
+  const s = String(gtin).padStart(14, '0');
+  let sum = 0;
+  for (let i = 0; i < 13; i++) sum += parseInt(s[i], 10) * (i % 2 === 0 ? 3 : 1);
+  return ((10 - (sum % 10)) % 10) === parseInt(s[13], 10);
+}
+
 const LBL = {
   planting:['🌱','Xuống giống'], irrigation:['💧','Tưới nước'], fertilizer:['🧪','Bón phân'],
   pest:['🛡️','Xử lý bảo vệ thực vật'], weeding:['🌿','Chăm sóc'], inspection:['🔍','Kiểm tra'],
@@ -297,15 +316,45 @@ function renderNotFound(code){
 
   if (q.get('demo')) { render(DEMO,'demo'); return; }
 
-  if (!code && !embedded) { renderNotFound(''); return; }
+  // GS1 Digital Link path resolution: /01/{GTIN}/10/{LOT}
+  const gs1 = parseGS1Path(location.pathname);
+  const resolveCode = gs1?.lot || code;
+
+  if (!resolveCode && !embedded) { renderNotFound(''); return; }
+
+  // Badge GTIN nếu có
+  const gtinBadge = gs1?.gtin ? (checkGTIN(gs1.gtin)
+    ? '<span class="badge ok" style="margin-right:6px;">🔗 GS1-13 hợp lệ</span>'
+    : '<span class="badge warn" style="margin-right:6px;">⚠ GTIN cần kiểm tra</span>') : '';
 
   // 1. Server verify (nếu GAS có action trace)
-  if (code) {
-    const lot = await fetchGAS(code);
+  if (resolveCode) {
+    const lot = await fetchGAS(resolveCode);
     if (lot) { render(lot,'server'); return; }
   }
   // 2. Payload nhúng trong QR
   if (embedded && embedded.code) { render(embedded,'embedded'); return; }
+
+  // 3. GS1 path with no server data — show partial info
+  if (gs1) {
+    document.getElementById('app').innerHTML = `
+    <div class="hero fade">
+      ${gtinBadge}
+      <span class="badge warn">◔ GS1 Digital Link — chờ đồng bộ</span>
+      <h1>${esc(gs1.gtin)}</h1>
+      <div class="code">Lô: <b>${esc(gs1.lot || '-')}</b></div>
+      <div class="verify-line">🔗 Truy xuất qua GS1 Digital Link — dữ liệu lô chưa được đồng bộ lên server. Quét lại sau hoặc liên hệ nơi bán.</div>
+    </div>
+    <div class="card fade">
+      <h2>GS1 Thông tin</h2>
+      <div class="grid">
+        <div class="kv span2"><div class="k">GTIN</div><div class="v" style="font-family:monospace;">${esc(gs1.gtin)}</div></div>
+        <div class="kv span2"><div class="k">Mã lô (Batch)</div><div class="v">${esc(gs1.lot || '-')}</div></div>
+        <div class="kv span2"><div class="k">Check digit</div><div class="v">${checkGTIN(gs1.gtin) ? '✅ Hợp lệ' : '❌ Không hợp lệ'}</div></div>
+      </div>
+    </div>`;
+    return;
+  }
 
   renderNotFound(code);
 })();

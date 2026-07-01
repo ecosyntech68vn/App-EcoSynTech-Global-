@@ -2,6 +2,7 @@ import { blockchainStore } from '../stores/blockchain.js';
 import { authStore } from '../stores/auth.js';
 import { lotStore as lotsStore } from '../db/trace.js';
 import { logisticsStore, CARRIER_LIST } from '../stores/logistics.js';
+import qrcode from 'qrcode-generator';
 
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -59,7 +60,11 @@ export async function renderBlockchain() {
         <option value="">-- Chọn lô --</option>
         ${lots.map(l => `<option value="${esc(l.id || l.lotId)}">${esc(l.name || l.crop || l.id || l.lotId)}</option>`).join('')}
       </select>
-      <input id="bc-gtin" class="form" placeholder="Mã GTIN (GS1, 13 số)" />
+      <div style="display:flex;gap:4px;">
+        <input id="bc-gtin" class="form" placeholder="Mã GTIN (GS1, 13 số)" style="flex:2;" />
+        <button class="btn small" style="font-size:10px;" onclick="window.bcValidateGTIN()">✓ Check</button>
+      </div>
+      <div id="bc-gtin-valid" style="font-size:11px;margin:2px 0 4px;"></div>
       <input id="bc-product" class="form" placeholder="Tên sản phẩm *" />
       <input id="bc-crop" class="form" placeholder="Cây trồng" />
       <div style="display:flex;gap:4px;">
@@ -75,15 +80,22 @@ export async function renderBlockchain() {
       ${await renderTxList()}
     </div>
 
-    <h3 style="padding:8px 16px 2px;margin-top:4px;font-size:13px;color:var(--c-text-muted);text-transform:uppercase;">🔗 GS1 Digital Link QR</h3>
+    <h3 style="padding:8px 16px 2px;margin-top:4px;font-size:13px;color:var(--c-text-muted);text-transform:uppercase;">🔗 GS1 Digital Link QR (Vietnam/EU)</h3>
     <div class="card" style="padding:12px;margin:8px 16px;">
-      <div style="font-weight:600;margin-bottom:6px;">Tạo QR cho lô</div>
+      <div style="font-weight:600;margin-bottom:6px;">Tạo QR GS1 cho sản phẩm</div>
       <div style="display:flex;gap:4px;">
-        <input id="bc-qr-gtin" class="form" placeholder="GTIN (13 số)" style="flex:1;" />
-        <input id="bc-qr-batch" class="form" placeholder="Batch/lô" style="flex:1;" />
+        <input id="bc-qr-gtin" class="form" placeholder="GTIN-13 (nhập 12 số + tự sinh check digit)" style="flex:1;" />
+        <button class="btn small" style="font-size:10px;" onclick="window.bcAutoGTIN()">Tự GTIN</button>
       </div>
-      <input id="bc-qr-serial" class="form" placeholder="Serial (tuỳ chọn)" />
-      <button class="btn primary" style="width:100%;margin-top:6px;" onclick="window.bcGenerateQR()">📱 Tạo QR + Aptos proof</button>
+      <div id="bc-gtin-full" style="font-size:11px;margin:2px 0 4px;"></div>
+      <div style="display:flex;gap:4px;">
+        <input id="bc-qr-batch" class="form" placeholder="Batch/lô (VD: LOTA001)" style="flex:1;" />
+        <input id="bc-qr-serial" class="form" placeholder="Serial (tự động)" style="flex:1;" />
+      </div>
+      <div style="display:flex;gap:4px;margin-top:6px;">
+        <button class="btn primary" style="flex:1;" onclick="window.bcGenerateQR()">📱 Tạo QR</button>
+        <button class="btn secondary" style="flex:1;" onclick="window.bcGenerateEPCIS()">📄 EPCIS event</button>
+      </div>
       <div id="bc-qr-result" style="margin-top:8px;"></div>
     </div>
 
@@ -173,21 +185,32 @@ window.bcGenerateQR = async () => {
     if (QRCode) {
       qrSvg = QRCode.toString(digitalLink, { type: 'svg', errorCorrectionLevel: 'H' });
     }
+    if (!qrSvg) {
+      const qr = qrcode?.(0, 'M');
+      if (qr) { qr.addData(digitalLink); qr.make(); qrSvg = qr.createSvgTag({ cellSize: 3, margin: 0 }); }
+    }
   } catch (_) {}
+
+  const gtinValid = blockchainStore.checkGTIN(gtin);
+  const gtinFormatted = gtinValid ? `✅ GTIN-13 hợp lệ` : `⚠ GTIN cần kiểm tra`;
 
   container.innerHTML = `
     <div class="card" style="padding:10px;border-color:#0288D1;">
-      <div style="font-weight:600;">📱 GS1 Digital Link QR</div>
+      <div style="font-weight:600;">📱 GS1 Digital Link QR — ${gtinFormatted}</div>
       ${qrSvg ? `<div style="text-align:center;margin:8px 0;">${qrSvg}</div>` : `<div style="background:#f5f5f5;padding:20px;text-align:center;font-family:monospace;font-size:11px;word-break:break-all;">${esc(digitalLink)}</div>`}
-      <div style="font-size:11px;margin-top:4px;">
-        <strong>GS1 Data:</strong> <code style="background:#f5f5f5;padding:2px 4px;font-size:10px;">${esc(gs1Data)}</code>
+      <div style="font-size:11px;margin-top:4px;background:#f5f5f5;padding:6px 8px;border-radius:4px;">
+        <strong>GS1 AI:</strong> <code style="font-size:10px;word-break:break-all;">${esc(gs1Data)}</code>
       </div>
-      <div style="font-size:11px;">
-        <strong>Digital Link:</strong> <a href="${esc(digitalLink)}" target="_blank" style="word-break:break-all;">${esc(digitalLink)}</a>
+      <div style="font-size:11px;font-family:monospace;margin-top:2px;word-break:break-all;">
+        🔗 <a href="${esc(digitalLink)}" target="_blank">${esc(digitalLink)}</a>
       </div>
-      <div style="display:flex;gap:4px;margin-top:6px;">
-        <button class="btn small" onclick="navigator.clipboard.writeText('${esc(digitalLink)}').then(()=>window.showToast?.('Đã copy link','ok'))" style="font-size:10px;">📋 Copy link</button>
-        <button class="btn small" onclick="window.bcVerifyBatch('${esc(batch)}')" style="font-size:10px;">🔍 Verify chain</button>
+      <div style="font-size:11px;margin-top:2px;color:var(--c-text-muted);">
+        📦 <strong>GTIN:</strong> ${esc(gtin)} · <strong>Batch:</strong> ${esc(batch || '-')} · <strong>Serial:</strong> ${esc(serial.slice(-8))}
+      </div>
+      <div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;">
+        <button class="btn small" style="font-size:10px;" onclick="navigator.clipboard.writeText('${esc(digitalLink)}').then(()=>window.showToast?.('Đã copy link','ok'))">📋 Copy DL</button>
+        <button class="btn small" style="font-size:10px;" onclick="navigator.clipboard.writeText('${esc(gs1Data)}').then(()=>window.showToast?.('Đã copy GS1','ok'))">📋 Copy GS1 AI</button>
+        <button class="btn small" style="font-size:10px;" onclick="window.bcVerifyBatch('${esc(batch)}')">🔍 Verify chain</button>
       </div>
     </div>
   `;
@@ -221,6 +244,61 @@ window.bcExplorer = (hash) => {
 
 window.bcRefresh = () => {
   document.querySelector('[x-data]').__x?.$data?.nav?.('blockchain');
+};
+
+window.bcValidateGTIN = () => {
+  const gtin = document.getElementById('bc-gtin')?.value.trim();
+  const el = document.getElementById('bc-gtin-valid');
+  if (!gtin || gtin.length < 12) { el.innerHTML = ''; return; }
+  if (blockchainStore.checkGTIN(gtin)) {
+    el.innerHTML = '✅ GTIN hợp lệ';
+    el.style.color = '#2E7D32';
+  } else {
+    const full = blockchainStore.makeGTIN13(gtin.slice(0, 12).padStart(12, '0'));
+    el.innerHTML = full ? `⚠ GTIN sai check digit — ý bạn là <strong>${full}</strong>? <a href="#" onclick="document.getElementById('bc-gtin').value='${full}';window.bcValidateGTIN();return false;">Dùng</a>` : '❌ GTIN không hợp lệ';
+    el.style.color = '#c62828';
+  }
+};
+
+window.bcAutoGTIN = () => {
+  const gtin = document.getElementById('bc-qr-gtin')?.value.trim();
+  const el = document.getElementById('bc-gtin-full');
+  if (!gtin || gtin.length < 12) { el.innerHTML = 'Nhập 12 số đầu để sinh GTIN-13'; el.style.color = 'var(--c-text-muted)'; return; }
+  const base = gtin.replace(/\D/g, '').slice(0, 12).padStart(12, '0');
+  const full = blockchainStore.makeGTIN13(base);
+  if (full) {
+    document.getElementById('bc-qr-gtin').value = full;
+    el.innerHTML = `✅ GTIN-13: <strong>${full}</strong> (check digit: ${full.slice(-1)})`;
+    el.style.color = '#2E7D32';
+  } else {
+    el.innerHTML = '❌ Không thể sinh GTIN';
+    el.style.color = '#c62828';
+  }
+};
+
+window.bcGenerateEPCIS = async () => {
+  const gtin = document.getElementById('bc-qr-gtin')?.value.trim();
+  const batch = document.getElementById('bc-qr-batch')?.value.trim();
+  if (!gtin) { window.showToast?.('Nhập GTIN trước', 'err'); return; }
+  const event = blockchainStore.generateEPCISEvent({
+    type: 'harvesting',
+    gtin, lot: batch || 'LOT' + Date.now().toString(36).toUpperCase(),
+    bizStep: 'harvesting',
+    quantity: 1, unit: 'KGM',
+    location: authStore.activeFarmId || 'VN',
+    action: 'OBSERVE'
+  });
+  await blockchainStore.saveEPCISEvent(event);
+  const container = document.getElementById('bc-qr-result');
+  const json = JSON.stringify(event, null, 2);
+  container.innerHTML = `
+    <div class="card" style="padding:10px;border-color:#6A1B9A;">
+      <div style="font-weight:600;">📄 EPCIS Event (EU export)</div>
+      <pre style="font-size:9px;background:#f5f5f5;padding:8px;border-radius:4px;overflow-x:auto;margin-top:6px;max-height:200px;word-break:break-all;">${esc(json)}</pre>
+      <button class="btn small" style="margin-top:4px;font-size:10px;" onclick="navigator.clipboard.writeText(\`${esc(json)}\`).then(()=>window.showToast?.('Đã copy EPCIS','ok'))">📋 Copy EPCIS</button>
+    </div>
+  `;
+  window.showToast?.('✓ Đã tạo EPCIS event — sẵn sàng cho EU export', 'ok');
 };
 
 window.wire_blockchain = function () {};

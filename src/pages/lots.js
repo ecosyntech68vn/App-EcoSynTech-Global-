@@ -1,9 +1,10 @@
 // lots.js — V3.1 Truy xuất nguồn gốc: danh sách lô, tạo lô, chi tiết timeline,
 // thu hoạch (PHI guard), QR truy xuất + Phiếu truy xuất PDF.
 // PDF render qua canvas (hỗ trợ tiếng Việt đầy đủ) → jsPDF addImage.
-import { lotStore, materialsStore, ACTIVITY_LABELS } from '../db/trace.js';
+import { lotStore, materialsStore, ACTIVITY_LABELS, validateGTIN, generateGTIN13, formatGTIN, formatGS1AIString, formatGS1AIHuman, gs1DigitalLink, encodeGS1128Barcode, drawGS1128, validatePUC, formatPUC } from '../db/trace.js';
 import { authStore } from '../stores/auth.js';
 import { hasFeature, TRACE_BASIC_MAX_LOTS, PLANS } from '../stores/plan.js';
+import { blockchainStore } from '../stores/blockchain.js';
 import qrcode from 'qrcode-generator';
 
 let currentLotId = null; // state: null = list view, khác null = detail view
@@ -62,8 +63,11 @@ async function renderLotList() {
               <option value="CN">Trung Quốc</option>
             </select>
 
-            <label>GTIN sản phẩm (GS1)</label>
-            <input name="gtin" inputmode="numeric" placeholder="Mã sản phẩm toàn cầu 8–14 số" />
+            <label>GTIN sản phẩm (GS1) <span id="lot-gtin-msg" style="font-size:11px;font-weight:400;"></span></label>
+            <div style="display:flex;gap:4px;">
+              <input name="gtin" id="lot-gtin" inputmode="numeric" placeholder="Nhập 12 số → tự sinh check digit" style="flex:3;" />
+              <button type="button" class="btn small" style="font-size:10px;" onclick="window.lotAutoGTIN()">Sinh</button>
+            </div>
             <label>GLN cơ sở (GS1)</label>
             <input name="gln" inputmode="numeric" placeholder="Mã địa điểm toàn cầu 13 số" />
 
@@ -224,6 +228,21 @@ async function renderLotDetail(lotId) {
 function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 // ===== WIRING =====
+window.lotAutoGTIN = () => {
+  const el = document.getElementById('lot-gtin');
+  const msg = document.getElementById('lot-gtin-msg');
+  if (!el) return;
+  const val = el.value.replace(/\D/g, '');
+  const base12 = val.slice(0, 12).padStart(12, '0');
+  const full = generateGTIN13(base12);
+  if (full) {
+    el.value = full;
+    msg.innerHTML = '✅ GTIN-13: ' + formatGTIN(full);
+    msg.style.color = '#2E7D32';
+    window.showToast?.('✓ Đã sinh GTIN-13: ' + full, 'ok');
+  }
+};
+
 window.wire_lots = function() {
   const nav = () => document.querySelector('[x-data]').__x.$data.nav('lots');
 
@@ -332,6 +351,25 @@ window.wire_lots = function() {
     qrEl.innerHTML = qr.createSvgTag({ cellSize: 3, margin: 0 });
   })();
 
+  // GTIN auto-check và sinh check digit
+  document.getElementById('lot-gtin')?.addEventListener('input', function() {
+    const msg = document.getElementById('lot-gtin-msg');
+    const val = this.value.replace(/\D/g, '');
+    this.value = val;
+    if (val.length === 13) {
+      if (validateGTIN(val)) { msg.innerHTML = '✅ hợp lệ'; msg.style.color = '#2E7D32'; }
+      else { msg.innerHTML = '⚠ sai check digit'; msg.style.color = '#c62828'; }
+    } else if (val.length >= 12) {
+      const full = generateGTIN13(val.slice(0, 12).padStart(12, '0'));
+      msg.innerHTML = full ? `→ <a href="#" onclick="document.getElementById('lot-gtin').value='${full}';document.getElementById('lot-gtin').dispatchEvent(new Event('input'));return false;" style="color:#2E7D32;">${full}</a>` : '';
+    } else { msg.innerHTML = ''; }
+  });
+
+  // PUC format
+  document.querySelector('[name="puc"]')?.addEventListener('input', function() {
+    this.value = formatPUC(this.value);
+  });
+
   // Phiếu truy xuất PDF — render canvas (full tiếng Việt) → jsPDF
   document.getElementById('lot-pdf')?.addEventListener('click', async () => {
     try {
@@ -401,6 +439,29 @@ async function exportTracePdf(lot, events) {
   const qx = W - 40 - n * cell, qy = 150;
   ctx.fillStyle = '#000';
   for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (qr.isDark(r, c)) ctx.fillRect(qx + c * cell, qy + r * cell, cell, cell);
+
+  // GS1-128 barcode
+  const gtin = lot.trace?.gtin || '';
+  const lotCode = lot.code || '';
+  if (gtin) {
+    const gs1Raw = formatGS1AIString(gtin, lotCode, '');
+    const gs1Human = formatGS1AIHuman(gtin, lotCode, '');
+    const barcodePats = encodeGS1128Barcode(gs1Raw);
+    if (barcodePats) {
+      const bx = 40, by = qy + n * cell + 30;
+      // Nhãn "GS1-128"
+      ctx.fillStyle = '#555'; ctx.font = '16px sans-serif';
+      ctx.fillText('GS1-128:', bx, by - 6);
+      drawGS1128(ctx, bx + 100, by, barcodePats, 50, 1.0);
+      // Human-readable dưới barcode
+      ctx.fillStyle = '#333'; ctx.font = '12px monospace';
+      let hy = by + 55;
+      for (const line of gs1Human.split('\n')) {
+        ctx.fillText(line, bx + 100, hy);
+        hy += 16;
+      }
+    }
+  }
 
   // Timeline
   y += 20;

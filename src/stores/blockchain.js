@@ -2,6 +2,7 @@ import { get, set } from 'idb-keyval';
 import { authStore } from './auth.js';
 import { auditStore } from './audit.js';
 import { aptosService, aptosConfig } from './aptos-service.js';
+import { validateGTIN, generateGTIN13, gs1DigitalLink, formatGS1AIString, buildEPCISEvent } from '../db/trace.js';
 
 const TX_KEY = 'aptos:transactions';
 const BATCH_KEY = 'aptos:batch_hashes';
@@ -223,24 +224,56 @@ export const blockchainStore = {
 
   generateGS1DigitalLink({ gtin, batch, serial, prodDate, netWeight }) {
     if (!gtin) return '';
-    // GS1 Digital Link format: https://id.gs1.org/01/GTIN/10/BATCH/21/SERIAL
-    let url = `https://ecosyntech.com/trace/gtin/${gtin}`;
-    const params = [];
-    if (batch) params.push(`lot=${encodeURIComponent(batch)}`);
-    if (serial) params.push(`sn=${encodeURIComponent(serial)}`);
-    if (prodDate) params.push(`date=${prodDate}`);
-    if (netWeight) params.push(`w=${netWeight}`);
-    if (params.length) url += '?' + params.join('&');
-    return url;
+    return gs1DigitalLink(gtin, batch, serial);
   },
 
   generateGS1QRData(gtin, batchId, serial) {
-    // GS1 Application Identifier encoding for barcode
-    const parts = [];
-    if (gtin) parts.push(`01${gtin}`);
-    if (batchId) parts.push(`10${batchId}`);
-    if (serial) parts.push(`21${serial}`);
-    return parts.join('');
+    return formatGS1AIString(gtin, batchId, serial);
+  },
+
+  checkGTIN(gtin) {
+    return validateGTIN(gtin);
+  },
+
+  makeGTIN13(base12) {
+    return generateGTIN13(base12);
+  },
+
+  generateEPCISEvent(params) {
+    return buildEPCISEvent(params);
+  },
+
+  async saveEPCISEvent(event) {
+    if (!event) return null;
+    const key = 'epcis:events';
+    const events = (await get(key)) || [];
+    events.unshift({ ...event, savedAt: Date.now() });
+    await set(key, events.slice(0, 500));
+    return event;
+  },
+
+  async getEPCISEvents(batchId, limit = 50) {
+    const key = 'epcis:events';
+    const events = (await get(key)) || [];
+    const filtered = batchId ? events.filter(e => e.epcList?.some?.(epc => epc.includes(batchId))) : events;
+    return filtered.slice(0, limit);
+  },
+
+  async exportEPCIS(batchId) {
+    const txs = await this.getBatchChain(batchId);
+    const events = await this.getEPCISEvents(batchId);
+    return {
+      '@context': 'https://ref.gs1.org/gs1/jsonld/epcis-context.jsonld',
+      isA: 'EPCISDocument',
+      schemaVersion: '1.2',
+      creationDate: new Date().toISOString(),
+      epcisBody: {
+        eventList: events.map(e => ({
+          ...e,
+          certificationInfo: txs.length ? `Aptos tx: ${txs[0].hash}` : undefined
+        }))
+      }
+    };
   },
 
   // ============================================================

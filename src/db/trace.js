@@ -189,6 +189,203 @@ function lotStore_currentFarm() { try { return authStore.activeFarmId || '(hiệ
 // ===== Lô / Mùa vụ =====
 function pad2(n) { return String(n).padStart(2, '0'); }
 
+// ===== GS1 UTILITIES (Vietnam / EU export compliance) =====
+
+// Kiểm tra check digit GTIN-13 (GS1)
+export function validateGTIN(gtin) {
+  if (!gtin || !/^\d{8,14}$/.test(gtin)) return false;
+  const s = String(gtin).padStart(14, '0');
+  let sum = 0;
+  for (let i = 0; i < 13; i++) sum += parseInt(s[i], 10) * (i % 2 === 0 ? 3 : 1);
+  const check = (10 - (sum % 10)) % 10;
+  return check === parseInt(s[13], 10);
+}
+
+// Sinh check digit GTIN-13 từ 12 số đầu
+export function generateGTIN13(base12) {
+  if (!base12 || !/^\d{12}$/.test(base12)) return '';
+  let sum = 0;
+  for (let i = 0; i < 12; i++) sum += parseInt(base12[i], 10) * (i % 2 === 0 ? 1 : 3);
+  const check = (10 - (sum % 10)) % 10;
+  return base12 + check;
+}
+
+// Sinh check digit GTIN-14 từ 13 số đầu
+export function generateGTIN14(base13) {
+  if (!base13 || !/^\d{13}$/.test(base13)) return '';
+  let sum = 0;
+  for (let i = 0; i < 13; i++) sum += parseInt(base13[i], 10) * (i % 2 === 0 ? 3 : 1);
+  const check = (10 - (sum % 10)) % 10;
+  return base13 + check;
+}
+
+// Format GTIN cho hiển thị (13 số)
+export function formatGTIN(gtin) {
+  const s = String(gtin || '').replace(/\D/g, '');
+  if (s.length !== 13) return s;
+  return `${s.slice(0, 1)}-${s.slice(1, 6)}-${s.slice(6, 11)}-${s.slice(11)}`;
+}
+
+// GS1-128 Barcode Encoder (Code 128B + FNC1 cho GS1)
+export function encodeGS1128(aiString) {
+  if (!aiString) return '';
+  // Chuẩn bị dữ liệu: AI string đã có format (01)GTIN(10)LOT...
+  // Output: barcode pattern string gồm '1' (bar) và '0' (space)
+  return aiString;
+}
+
+// Code 128B patterns: value 0-106 → 6 run-lengths (bar,space,bar,space,bar,space,bar,space,bar,space,bar)
+// Tổng=11 modules cho mỗi ký tự, ngoại trừ Stop=13 modules (2+3+4+2+1+1=13? Actually standard is 13)
+// Tham khảo: ISO/IEC 15417
+const C128_PATTERNS = [
+  [2,1,2,2,2,2,0,0,0,0,0],[2,2,2,1,2,2,0,0,0,0,0],[2,2,2,2,2,1,0,0,0,0,0],[1,2,1,2,2,3,0,0,0,0,0],
+  [1,2,1,3,2,2,0,0,0,0,0],[1,3,1,2,2,2,0,0,0,0,0],[1,2,2,2,1,3,0,0,0,0,0],[1,2,2,3,1,2,0,0,0,0,0],
+  [1,3,2,2,1,2,0,0,0,0,0],[2,2,1,2,1,3,0,0,0,0,0],[2,2,1,3,1,2,0,0,0,0,0],[2,3,1,2,1,2,0,0,0,0,0],
+  [1,1,2,2,3,2,0,0,0,0,0],[1,2,2,1,3,2,0,0,0,0,0],[1,2,2,2,3,1,0,0,0,0,0],[1,1,3,2,2,2,0,0,0,0,0],
+  [1,2,3,1,2,2,0,0,0,0,0],[1,2,3,2,2,1,0,0,0,0,0],[2,3,2,1,1,2,0,0,0,0,0],[2,2,1,1,3,2,0,0,0,0,0],
+  [2,2,1,2,3,1,0,0,0,0,0],[2,1,3,2,1,2,0,0,0,0,0],[2,3,1,1,2,2,0,0,0,0,0],[3,1,2,1,3,1,0,0,0,0,0],
+  [3,1,1,2,2,2,0,0,0,0,0],[3,2,1,1,2,2,0,0,0,0,0],[3,2,1,2,2,1,0,0,0,0,0],[3,1,2,2,1,2,0,0,0,0,0],
+  [3,2,2,1,1,2,0,0,0,0,0],[3,2,2,2,1,1,0,0,0,0,0],[2,1,2,1,2,3,0,0,0,0,0],[2,1,2,3,2,1,0,0,0,0,0],
+  [2,3,2,1,2,1,0,0,0,0,0],[1,1,1,3,2,3,0,0,0,0,0],[1,3,1,1,2,3,0,0,0,0,0],[1,3,1,3,2,1,0,0,0,0,0],
+  [1,1,2,3,1,3,0,0,0,0,0],[1,3,2,1,1,3,0,0,0,0,0],[1,3,2,3,1,1,0,0,0,0,0],[2,1,1,3,1,3,0,0,0,0,0],
+  [2,3,1,1,1,3,0,0,0,0,0],[2,3,1,3,1,1,0,0,0,0,0],[1,1,2,1,3,3,0,0,0,0,0],[1,1,2,3,3,1,0,0,0,0,0],
+  [1,3,2,1,3,1,0,0,0,0,0],[1,1,3,1,2,3,0,0,0,0,0],[1,1,3,3,2,1,0,0,0,0,0],[1,3,3,1,2,1,0,0,0,0,0],
+  [3,1,3,1,2,1,0,0,0,0,0],[2,1,1,3,3,1,0,0,0,0,0],[2,3,1,1,3,1,0,0,0,0,0],[2,1,3,1,1,3,0,0,0,0,0],
+  [2,1,3,3,1,1,0,0,0,0,0],[2,1,3,1,3,1,0,0,0,0,0],[3,1,1,1,2,3,0,0,0,0,0],[3,1,1,3,2,1,0,0,0,0,0],
+  [3,3,1,1,2,1,0,0,0,0,0],[3,1,2,1,1,3,0,0,0,0,0],[3,1,2,3,1,1,0,0,0,0,0],[3,3,2,1,1,1,0,0,0,0,0],
+  [3,1,4,1,1,1,0,0,0,0,0],[2,2,1,4,1,1,0,0,0,0,0],[4,3,1,1,1,1,0,0,0,0,0],[1,1,1,2,2,4,0,0,0,0,0],
+  [1,1,4,2,2,1,0,0,0,0,0],[1,2,1,1,2,4,0,0,0,0,0],[1,2,1,4,2,1,0,0,0,0,0],[1,4,1,1,2,2,0,0,0,0,0],
+  [1,4,1,2,2,1,0,0,0,0,0],[1,1,2,2,1,4,0,0,0,0,0],[1,1,2,4,1,2,0,0,0,0,0],[1,2,2,1,1,4,0,0,0,0,0],
+  [1,2,2,4,1,1,0,0,0,0,0],[1,4,2,1,1,2,0,0,0,0,0],[1,4,2,2,1,1,0,0,0,0,0],[2,4,1,2,1,1,0,0,0,0,0],
+  [2,2,1,1,4,1,0,0,0,0,0],[4,1,3,1,1,1,0,0,0,0,0],[2,4,1,1,1,2,0,0,0,0,0],[1,3,4,1,1,1,0,0,0,0,0],
+  [1,1,1,2,4,2,0,0,0,0,0],[1,2,1,1,4,2,0,0,0,0,0],[1,2,1,2,4,1,0,0,0,0,0],[1,1,4,2,1,2,0,0,0,0,0],
+  [1,4,1,2,1,2,0,0,0,0,0],[1,1,4,2,2,1,0,0,0,0,0],[4,1,1,2,1,2,0,0,0,0,0],[4,2,1,1,2,1,0,0,0,0,0],
+  [4,2,1,2,1,1,0,0,0,0,0],[2,1,2,1,4,1,0,0,0,0,0],[2,1,4,1,2,1,0,0,0,0,0],[4,1,2,1,2,1,0,0,0,0,0],
+  [1,1,1,4,3,1,0,0,0,0,0],[1,1,3,4,1,1,0,0,0,0,0],[3,1,1,4,1,1,0,0,0,0,0],[1,1,4,1,1,3,0,0,0,0,0],
+  [1,1,4,3,1,1,0,0,0,0,0],[4,1,1,1,1,3,0,0,0,0,0],[4,1,1,3,1,1,0,0,0,0,0],[1,1,3,1,4,1,0,0,0,0,0],
+  [1,1,4,1,3,1,0,0,0,0,0],[3,1,1,1,4,1,0,0,0,0,0],[4,1,1,1,3,1,0,0,0,0,0],[2,1,1,4,1,2,0,0,0,0,0],
+  [2,1,1,2,1,4,0,0,0,0,0],[2,1,1,2,3,2,0,0,0,0,0],[2,3,3,1,1,1,2,0,0,0,0,0] // 106 = Stop: 2+3+3+1+1+1+2 = 13 modules
+];
+
+// GS1-128: Start B (104) + FNC1 (102) + dữ liệu + check digit + Stop (106)
+const C128_START_B = 104;
+const C128_FNC1 = 102;
+const C128_STOP = 106;
+
+// Encode string thành GS1-128 barcode pattern (mảng run-length)
+// Input: GS1 AI string (không dấu ngoặc), VD: "0112345678901210LOT001"
+export function encodeGS1128Barcode(data) {
+  if (!data || !data.length) return null;
+  // Mã hoá ký tự: giá trị = charCode - 32 (cho Code 128B)
+  const values = [C128_START_B, C128_FNC1];
+  for (const ch of data) {
+    const v = ch.charCodeAt(0) - 32;
+    if (v < 0 || v > 102) return null; // ký tự không hợp lệ
+    values.push(v);
+  }
+  // Check digit
+  let sum = values[0];
+  for (let i = 1; i < values.length; i++) sum += values[i] * i;
+  values.push(sum % 103);
+  values.push(C128_STOP);
+  // Chuyển thành pattern dạng mảng run-length
+  const patterns = values.map(v => (v >= 0 && v <= 106) ? C128_PATTERNS[v] : null);
+  if (patterns.some(p => !p)) return null;
+  return patterns;
+}
+
+// Render GS1-128 lên canvas
+export function drawGS1128(ctx, x, y, patterns, barHeight, moduleWidth) {
+  if (!patterns || !patterns.length) return;
+  const h = barHeight || 60;
+  const mw = moduleWidth || 1.2;
+  let cx = x;
+  ctx.fillStyle = '#000';
+  for (const pattern of patterns) {
+    for (let i = 0; i < pattern.length; i++) {
+      const w = pattern[i] * mw;
+      if (w <= 0) continue;
+      if (i % 2 === 0) ctx.fillRect(cx, y, w, h); // bar
+      cx += w;
+    }
+  }
+}
+
+// Format GS1 AI string từ GTIN, lot, serial
+export function formatGS1AIString(gtin, lot, serial) {
+  const parts = [];
+  if (gtin) parts.push(`01${String(gtin).replace(/\D/g, '').padStart(14, '0').slice(0, 14)}`);
+  if (lot) parts.push(`10${lot.slice(0, 20)}`);
+  if (serial) parts.push(`21${serial.slice(0, 20)}`);
+  return parts.join('');
+}
+
+// Format GS1 AI hiển thị (có dấu ngoặc)
+export function formatGS1AIHuman(gtin, lot, serial) {
+  const parts = [];
+  if (gtin) parts.push(`(01)${String(gtin).replace(/\D/g, '').padStart(14, '0').slice(0, 14)}`);
+  if (lot) parts.push(`(10)${lot.slice(0, 20)}`);
+  if (serial) parts.push(`(21)${serial.slice(0, 20)}`);
+  return parts.join('\n');
+}
+
+// GS1 Digital Link URI chuẩn
+// Format: https://id.gs1.org/01/{GTIN}/10/{lot}
+// https://{domain}/trace/{gtin}?lot={lot} (custom)
+export function gs1DigitalLink(gtin, lot, serial) {
+  if (!gtin) return '';
+  const cleanGtin = String(gtin).replace(/\D/g, '').slice(0, 14);
+  let link = `https://ecosyntech.com/trace/01/${cleanGtin}`;
+  const params = [];
+  if (lot) link += `/10/${encodeURIComponent(lot)}`;
+  if (serial) params.push(`21=${encodeURIComponent(serial)}`);
+  if (params.length) link += '?' + params.join('&');
+  return link;
+}
+
+// EPCIS event builder — EU export compliance
+export function buildEPCISEvent({ type, gtin, lot, bizStep, quantity, unit, location, timestamp, action }) {
+  const steps = {
+    planting: 'farm_planting',
+    harvesting: 'harvesting',
+    processing: 'processing',
+    shipping: 'shipping',
+    receiving: 'receiving',
+    inspection: 'inspecting',
+    storage: 'holding'
+  };
+  const epcisType = type === 'harvest' ? 'harvesting' : type;
+  return {
+    '@context': 'https://ref.gs1.org/gs1/jsonld/epcis-context.jsonld',
+    isA: 'ObjectEvent',
+    eventTime: new Date(timestamp || Date.now()).toISOString(),
+    eventTimeZoneOffset: '+07:00',
+    action: action || 'OBSERVE',
+    bizStep: `urn:epcglobal:cbv:bizstep:${steps[epcisType] || 'inspecting'}`,
+    disposition: 'urn:epcglobal:cbv:disp:active',
+    epcList: [`urn:epc:id:sgtin:${gtin}.${lot}`],
+    quantityList: quantity ? [{ epcClass: `urn:epc:class:lgtin:${gtin}.${lot}`, quantity: Number(quantity), uom: unit || 'KGM' }] : [],
+    bizLocation: location ? { id: `urn:epc:id:sgln:${location}` } : undefined,
+    ilmd: {
+      lotNumber: lot,
+      gtin: gtin,
+      traceabilityCode: lot
+    }
+  };
+}
+
+// Xác thực PUC Việt Nam (mã số vùng trồng)
+export function validatePUC(puc) {
+  // Format: VN-XX-12345 hoặc VN-XXX-12345
+  if (!puc) return false;
+  return /^VN-[A-Z]{2,3}-\d{3,6}$/i.test(puc);
+}
+
+// Format PUC
+export function formatPUC(puc) {
+  return String(puc || '').toUpperCase().replace(/\s/g, '');
+}
+
 async function nextLotCode(farmId) {
   const d = new Date();
   const ymd = String(d.getFullYear()).slice(2) + pad2(d.getMonth() + 1) + pad2(d.getDate());

@@ -18,7 +18,12 @@ vi.mock('../stores/audit.js', () => ({
 }));
 
 vi.mock('../db/trace.js', () => ({
-  lotsStore: { list: vi.fn(async () => [{ id: 'LOT001', name: 'Ca chua', crop: 'Ca chua' }]) }
+  lotsStore: { list: vi.fn(async () => [{ id: 'LOT001', name: 'Ca chua', crop: 'Ca chua' }]) },
+  validateGTIN: (g) => typeof g === 'string' && /^\d{13}$/.test(g),
+  generateGTIN13: (b) => b && b.length === 12 ? b + '8' : '',
+  gs1DigitalLink: (g, lot, s) => g ? `https://ecosyntech.com/trace/01/${g}/10/${lot || ''}` : '',
+  formatGS1AIString: (g, lot, s) => g ? `01${g}10${lot || ''}${s ? '21' + s : ''}` : '',
+  buildEPCISEvent: (p) => ({ isA: 'ObjectEvent', gtin: p.gtin, lot: p.lot })
 }));
 
 function clearStore() {
