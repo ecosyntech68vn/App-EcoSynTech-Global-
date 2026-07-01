@@ -489,6 +489,12 @@ export const lotStore = {
     const lot = await this.byId(lotId);
     if (!lot) throw new Error('Không tìm thấy lô');
     if (lot.status === 'closed') throw new Error('Lô đã đóng — không ghi thêm được');
+    // Kiểm tra sự kiện không xảy ra trước ngày xuống giống
+    const eventTs = evt.ts || Date.now();
+    const plantTime = lot.plantedAt ? new Date(lot.plantedAt).getTime() : 0;
+    if (plantTime > 0 && eventTs < plantTime) {
+      throw new Error(`Không thể ghi sự kiện trước ngày xuống giống (${lot.plantedAt}). Sự kiện: ${new Date(eventTs).toLocaleDateString('vi-VN')}. Vào lô để sửa ngày.`);
+    }
 
     let phiApplied = null;
     if (evt.materialId) {
@@ -496,7 +502,7 @@ export const lotStore = {
       if (mat) {
         evt.materialName = mat.name;
         if (mat.phiDays > 0) {
-          const until = (evt.ts || Date.now()) + mat.phiDays * 86400000;
+          const until = eventTs + mat.phiDays * 86400000;
           if (!lot.phiUntil || until > lot.phiUntil) {
             lot.phiUntil = until;
             lot.phiSource = mat.name;
