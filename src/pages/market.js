@@ -7,9 +7,9 @@ function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c
 function fmtMoney(v) { return (v || 0).toLocaleString('vi-VN') + '₫'; }
 
 export async function renderMarket() {
-  const lots = await lotStore.list();
+  const lots = await lotStore.list().catch(() => []);
   const harvestLots = lots.filter(l => l.harvest && l.status === 'harvested' && l.harvest.qty > 0);
-  const orders = await orderStore.list();
+  const orders = await orderStore.list().catch(() => []);
   const activeOrders = orders.filter(o => o.status !== 'cancelled' && o.status !== 'delivered');
 
   return `
@@ -116,8 +116,6 @@ window.quickOrder = async (id) => {
 };
 
 window.wire_market = function() {
-  // Back button
-  document.querySelector('[x-data]').__x.$data.nav('market');
 
   document.getElementById('market-order-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();

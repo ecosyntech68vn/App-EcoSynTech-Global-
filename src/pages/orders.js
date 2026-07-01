@@ -25,13 +25,13 @@ function generateQrDataUrl(text, cellSize = 4, margin = 4) {
 }
 
 export async function renderOrders() {
-  const orders = await orderStore.list();
-  const stats = await orderStore.getStats();
-  const bankCfg = await bankConfigStore.load();
+  const orders = await orderStore.list().catch(() => []);
+  const stats = await orderStore.getStats().catch(() => ({ total: 0, totalRevenue: 0, pendingPayment: 0, paidCount: 0, cancelledCount: 0 }));
+  const bankCfg = await bankConfigStore.load().catch(() => ({}));
   const bankList = bankConfigStore.getBankList();
   const lots = await lotStore.list().catch(() => []);
   const harvestLots = lots.filter(l => l.harvest && l.harvest.qty > 0);
-  const customers = await orderStore.listCustomers();
+  const customers = await orderStore.listCustomers().catch(() => []);
 
   const orderCards = orders.map(o => `
     <div class="card" data-order-id="${escapeHtml(o.id)}" style="cursor:pointer;">
