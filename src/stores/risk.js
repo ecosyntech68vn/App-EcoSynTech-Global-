@@ -49,11 +49,9 @@ export const riskStore = {
 
     // Check soil moisture if available
     try {
-      const { keys } = await import('idb-keyval');
       const allKeys = await keys();
       const soilKeys = allKeys.filter(k => typeof k === 'string' && k.startsWith('soil:'));
       if (soilKeys.length > 0) {
-        const { get } = await import('idb-keyval');
         const samples = [];
         for (const k of soilKeys) {
           const v = await get(k);

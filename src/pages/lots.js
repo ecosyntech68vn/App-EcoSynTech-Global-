@@ -253,6 +253,7 @@ async function renderLotDetail(lotId) {
           <span class="card-meta">${new Date(e.ts).toLocaleString('vi-VN')}</span>
         </div>
         ${e.materialName ? `<div class="card-meta">Vật tư: <strong>${escapeHtml(e.materialName)}</strong>${e.dose ? ' · ' + escapeHtml(e.dose) + ' ' + escapeHtml(e.doseUnit || '') : ''}</div>` : ''}
+        ${e.materials && e.materials.length > 1 ? `<div class="card-meta" style="font-size:11px;">🧪 Tank mix: ${e.materials.map(m => escapeHtml(m.name) + (m.dose ? ' ' + escapeHtml(m.dose) + ' ' + escapeHtml(m.doseUnit || '') : '')).join(' | ')}</div>` : ''}
         ${e.note ? `<p style="margin:4px 0 0; font-size:13px;">${escapeHtml(e.note)}</p>` : ''}
         ${e.gps && e.gps.lat ? `<div class="card-meta">📍 ${Number(e.gps.lat).toFixed(5)}, ${Number(e.gps.lng).toFixed(5)}</div>` : ''}
       </div>`).join('')}
@@ -399,6 +400,7 @@ window.wire_lots = function() {
 
   window.evtAddMat = () => {
     const list = document.getElementById('evt-material-list');
+    if (!list) return;
     const row = document.createElement('div');
     row.className = 'evt-mat-row';
     row.style.cssText = 'display:flex;gap:8px;margin:4px 0;';
@@ -408,13 +410,15 @@ window.wire_lots = function() {
       <input name="doseUnit" placeholder="Đơn vị" style="flex:1;" />
       <button type="button" class="btn small" onclick="this.parentElement.remove()" style="font-size:14px;">✕</button>`;
     list.appendChild(row);
-    // Fill select options
-    const mats = materialsStore.list().then(mats => {
+    materialsStore.list().then(mats => {
       const want = (document.getElementById('evt-type')?.value || 'pest') === 'fertilizer' ? 'fertilizer' : 'pesticide';
-      row.querySelector('.evt-material').innerHTML = `<option value="">— Chọn —</option>` +
-        mats.filter(m => m.type === want || m.type === 'other').map(m =>
-          `<option value="${m.id}">${escapeHtml(m.name)}${m.phiDays > 0 ? ` (PHI ${m.phiDays}d)` : ''}</option>`).join('');
-    });
+      const sel = row.querySelector('.evt-material');
+      if (sel) {
+        sel.innerHTML = `<option value="">— Chọn —</option>` +
+          mats.filter(m => m.type === want || m.type === 'other').map(m =>
+            `<option value="${m.id}">${escapeHtml(m.name)}${m.phiDays > 0 ? ` (PHI ${m.phiDays}d)` : ''}</option>`).join('');
+      }
+    }).catch(err => window.showToast?.('Không thể tải vật tư: ' + err.message, 'err'));
   };
 
   document.getElementById('lot-evt-form')?.addEventListener('submit', async (e) => {

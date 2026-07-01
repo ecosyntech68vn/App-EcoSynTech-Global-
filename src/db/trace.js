@@ -460,6 +460,7 @@ export const lotStore = {
       type: evt.type || 'other',
       materialId: evt.materialId || null,
       materialName: evt.materialName || null,
+      materials: evt.materials || null,
       dose: evt.dose || null,
       doseUnit: evt.doseUnit || null,
       note: evt.note || '',

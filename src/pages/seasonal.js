@@ -4,6 +4,8 @@ import { lotStore } from '../db/trace.js';
 const MONTHS = ['T1','T2','T3','T4','T5','T6','T7','T8','T9','T10','T11','T12'];
 const MONTH_LABELS = ['Thg 1','Thg 2','Thg 3','Thg 4','Thg 5','Thg 6','Thg 7','Thg 8','Thg 9','Thg 10','Thg 11','Thg 12'];
 
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
 export async function renderSeasonal() {
   const plans = await seasonStore.list();
   const lots = await lotStore.list();
@@ -64,10 +66,10 @@ export async function renderSeasonal() {
       <div class="card">
         <div class="card-title">Zone ${zoneId}</div>
         <div class="row">
-          <div>🌱 Vụ trước: <strong>${advice.lastCrop}</strong></div>
+          <div>🌱 Vụ trước: <strong>${esc(advice.lastCrop)}</strong></div>
           <span style="font-size:20px;">→</span>
           <div>💡 Nên trồng: ${advice.suggestions.length > 0
-            ? advice.suggestions.slice(0, 5).map(s => `<span class="pill completed">${s.crop}</span>`).join(' ')
+            ? advice.suggestions.slice(0, 5).map(s => `<span class="pill completed">${esc(s.crop)}</span>`).join(' ')
             : '<span class="card-meta">Chưa xác định — thử cây họ đậu hoặc cải</span>'}</div>
         </div>
       </div>`;
@@ -88,14 +90,14 @@ export async function renderSeasonal() {
         <div style="display:flex;gap:16px;margin-top:4px;">
           <div style="flex:1;padding:8px;border-radius:6px;background:${dColor}15;border:1px solid ${dColor}30;">
             <div style="font-size:12px;font-weight:600;color:${dColor};">🔥 Hạn hán</div>
-            <div style="font-size:11px;margin-top:2px;">${r.drought.reason}</div>
+            <div style="font-size:11px;margin-top:2px;">${esc(r.drought.reason)}</div>
           </div>
           <div style="flex:1;padding:8px;border-radius:6px;background:${fColor}15;border:1px solid ${fColor}30;">
             <div style="font-size:12px;font-weight:600;color:${fColor};">🌊 Ngập úng</div>
-            <div style="font-size:11px;margin-top:2px;">${r.flood.reason}</div>
+            <div style="font-size:11px;margin-top:2px;">${esc(r.flood.reason)}</div>
           </div>
         </div>
-        ${r.activeCrops.length > 0 ? `<div class="card-meta" style="margin-top:4px;">🌱 ${r.activeCrops.map(c => c.crop).join(', ')}</div>` : ''}
+        ${r.activeCrops.length > 0 ? `<div class="card-meta" style="margin-top:4px;">🌱 ${r.activeCrops.map(c => esc(c.crop)).join(', ')}</div>` : ''}
       </div>`;
     }
   } catch (_) { html += `<div class="card"><div class="card-meta">Không thể đánh giá rủi ro (thiếu dữ liệu)</div></div>`; }
@@ -141,11 +143,11 @@ function renderZoneGantt(zoneId, plans, lots, year) {
     rowsHtml += `
       <div style="display:flex;align-items:center;height:32px;margin:2px 0;position:relative;">
         <span style="width:100px;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0;">
-          <strong>${p.crop}</strong>${p.variety ? ' ' + p.variety : ''}
+          <strong>${esc(p.crop)}</strong>${p.variety ? ' ' + esc(p.variety) : ''}
         </span>
         <div style="flex:1;position:relative;height:100%;background:#f0f0f0;border-radius:4px;overflow:hidden;">
           <div style="position:absolute;left:${colStart}%;width:${barWidth}%;height:100%;background:${color};border-radius:4px;opacity:0.7;"></div>
-          <span style="position:absolute;left:${colStart + 1}%;font-size:10px;line-height:32px;color:#111;white-space:nowrap;">${p.status === 'planned' ? '🔜' : '🌱'} ${p.crop}</span>
+          <span style="position:absolute;left:${colStart + 1}%;font-size:10px;line-height:32px;color:#111;white-space:nowrap;">${p.status === 'planned' ? '🔜' : '🌱'} ${esc(p.crop)}</span>
         </div>
         <span style="width:60px;font-size:10px;text-align:right;flex-shrink:0;color:var(--c-text-muted);">
           <button class="btn small" style="font-size:10px;padding:1px 6px;" onclick="window.seasonDelete('${p.id}')">✕</button>
@@ -162,11 +164,11 @@ function renderZoneGantt(zoneId, plans, lots, year) {
     rowsHtml += `
       <div style="display:flex;align-items:center;height:32px;margin:2px 0;position:relative;">
         <span style="width:100px;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0;">
-          <strong>${l.crop}</strong>
+          <strong>${esc(l.crop)}</strong>
         </span>
         <div style="flex:1;position:relative;height:100%;background:#f0f0f0;border-radius:4px;overflow:hidden;">
           <div style="position:absolute;left:${colStart}%;width:${CM * 4}%;height:100%;background:${color};border-radius:4px;opacity:0.5;"></div>
-          <span style="position:absolute;left:${colStart + 1}%;font-size:10px;line-height:32px;color:#111;white-space:nowrap;">${label} ${l.code}</span>
+          <span style="position:absolute;left:${colStart + 1}%;font-size:10px;line-height:32px;color:#111;white-space:nowrap;">${label} ${esc(l.code)}</span>
         </div>
       </div>`;
   }

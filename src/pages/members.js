@@ -47,16 +47,16 @@ export async function renderMembers() {
         <div class="card-meta" style="margin-top:4px;">
           Thu hoạch: <strong>${s ? s.totalYield : 0} kg</strong>
           · ${s ? s.harvestedLots : 0} lô đã thu
-          ${s?.estimatedRevenue ? ` · 💰 ${(s.estimatedRevenue/1000000).toFixed(0)}tr` : ''}
+          ${s?.estimatedRevenue ? ` · 💰 ${esc((s.estimatedRevenue/1000000).toFixed(0))}tr` : ''}
         </div>
         ${memberLots.length > 0 ? `
         <details style="margin-top:6px;">
           <summary style="cursor:pointer;font-size:12px;color:var(--c-text-muted);">📋 ${memberLots.length} lô đã giao</summary>
           ${memberLots.map(l => `
             <div style="font-size:12px;padding:4px 0 0 12px;">
-              <strong>${escapeHtml(l.crop)}</strong> · ${escapeHtml(l.code)} · 
+              <strong>${esc(l.crop)}</strong> · ${esc(l.code)} · 
               ${l.status === 'growing' ? '🌱' : '✓'} 
-              ${l.harvest ? l.harvest.qty + l.harvest.unit : ''}
+              ${l.harvest ? esc(String(l.harvest.qty || '')) + esc(l.harvest.unit || '') : ''}
             </div>`).join('')}
         </details>` : ''}
         <div style="margin-top:8px;">

@@ -45,20 +45,30 @@ export const memberStore = {
 
   async productionSummary() {
     const { lotStore } = await import('../db/trace.js');
+    const { budgetStore } = await import('./budget.js');
     const members = await this.list();
     const lots = await lotStore.list();
-    return members.map(m => {
+    const out = [];
+    for (const m of members) {
       const memberLots = lots.filter(l => l.memberId === m.id);
       const harvested = memberLots.filter(l => l.harvest);
       const totalYield = harvested.reduce((s, l) => s + (l.harvest?.qty || 0), 0);
-      return {
+      let estimatedRevenue = 0;
+      for (const l of memberLots) {
+        try {
+          const plan = await budgetStore.getPlan(l.id);
+          estimatedRevenue += plan.lines.reduce((s, line) => s + (line.estimated || 0), 0);
+        } catch (_) {}
+      }
+      out.push({
         member: m,
         totalLots: memberLots.length,
         activeLots: memberLots.filter(l => l.status === 'growing').length,
         harvestedLots: harvested.length,
         totalYield,
-        estimatedRevenue: memberLots.reduce((s, l) => s + (l.budget?.expectedRevenue || 0), 0)
-      };
-    });
+        estimatedRevenue
+      });
+    }
+    return out;
   }
 };

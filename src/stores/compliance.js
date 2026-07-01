@@ -88,37 +88,25 @@ async function autoCheckForLot(lot, events) {
   if (types.has('pest')) met.add('pest_record');
   if (types.has('weeding')) met.add('weeding_record');
 
-  // Kiểm tra soil sample — lazy, gắn cờ nếu cần soil
-  // (giả sử đã có soil test nếu không thì false)
-  met.add('gg_record');
-  met.add('gg_trace');
-  met.add('gg_harvest');
-  if (types.has('pest')) met.add('gg_ppm');
-  if (lot.phiUntil) met.add('gg_phi');
-  if (types.has('fertilizer')) met.add('gg_fertilizer');
-  if (types.has('irrigation')) met.add('gg_irrigation');
-
-  // Pesticide catalog check — dùng material id của events pest
-  const { materialsStore } = await import('../db/trace.js');
-  const mats = await materialsStore.list();
-  const pestEvents = events.filter(e => e.type === 'pest');
-  for (const e of pestEvents) {
-    if (e.materialId && mats.some(m => m.id === e.materialId)) {
-      met.add('pest_approved');
-      met.add('pesticideCatalog');
-      break;
-    }
-  }
-
-  // Soil test
+  // Kiểm tra soil sample
   try {
-    const { keys } = await import('idb-keyval');
     const allKeys = await keys();
     if (allKeys.some(k => typeof k === 'string' && k.startsWith('soil:'))) {
       met.add('soil_test');
       met.add('gg_soil');
     }
   } catch (_) {}
+
+  // GlobalGAP additional auto-checks
+  if (lot.zoneId) met.add('gg_site');
+  if (lot.trace?.puc || lot.trace?.market) met.add('gg_site');
+  if (lot.trace?.seedSource || lot.variety) met.add('gg_seed');
+  if (lot.plantedAt) met.add('gg_site');
+  if (lot.area) met.add('gg_site');
+
+  // Water source — check if any irrigation events have a note mentioning water source
+  const irrigationNotes = events.filter(e => e.type === 'irrigation' && e.note);
+  if (irrigationNotes.length > 0 || types.has('irrigation')) met.add('gg_water');
 
   return met;
 }
