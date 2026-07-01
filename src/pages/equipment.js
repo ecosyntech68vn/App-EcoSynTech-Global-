@@ -40,6 +40,14 @@ export async function renderEquipment() {
       </div>
     </div>
 
+    ${summary.dueCount > 0 ? `
+    <div class="card crit" style="margin:0 16px 8px;">
+      <div class="card-title">🔔 ${summary.dueCount} thiết bị đến hạn bảo dưỡng</div>
+      ${summary.dueList.slice(0, 5).map(eq => `
+        <div style="font-size:12px;padding:2px 0;">• ${esc(eq.name)} (chu kỳ ${eq.maintenanceIntervalDays} ngày)</div>`).join('')}
+      <div class="card-meta" style="margin-top:4px;">Vào chi tiết thiết bị để ghi bảo dưỡng</div>
+    </div>` : ''}
+
     <div style="padding:0 16px 8px;">
       <button class="btn primary" style="width:100%;font-size:13px;" onclick="window.eqShowForm()">➕ Thêm thiết bị</button>
     </div>
@@ -54,6 +62,7 @@ export async function renderEquipment() {
       </div>
       <input id="eq-purchase" class="form" type="date" placeholder="Ngày mua" />
       <input id="eq-zone" class="form" placeholder="Zone (ví dụ: Z1)" />
+      <input id="eq-maint-interval" class="form" type="number" placeholder="Chu kỳ bảo dưỡng (ngày) — VD: 90" />
       <textarea id="eq-notes" class="form" placeholder="Ghi chú" rows="2"></textarea>
       <button class="btn primary" style="width:100%;margin-top:6px;" onclick="window.eqAdd()">💾 Lưu</button>
       <button class="btn secondary" style="width:100%;margin-top:4px;" onclick="document.getElementById('eq-add-form').style.display='none'">Hủy</button>
@@ -98,6 +107,7 @@ window.eqAdd = async () => {
     model: document.getElementById('eq-model')?.value || '',
     purchaseDate: document.getElementById('eq-purchase')?.value || '',
     zoneId: document.getElementById('eq-zone')?.value || '',
+    maintenanceIntervalDays: parseInt(document.getElementById('eq-maint-interval')?.value) || 0,
     notes: document.getElementById('eq-notes')?.value || ''
   });
   window.showToast?.('✓ Đã thêm thiết bị', 'ok');

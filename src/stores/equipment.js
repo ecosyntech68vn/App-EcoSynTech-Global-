@@ -38,7 +38,7 @@ export const equipmentStore = {
     return list.find(e => e.id === id) || null;
   },
 
-  async add({ name, type, brand, model, purchaseDate, status, notes, zoneId }) {
+  async add({ name, type, brand, model, purchaseDate, status, notes, zoneId, maintenanceIntervalDays }) {
     if (!name || !type) return false;
     const list = await this.getAll();
     const item = {
@@ -51,6 +51,7 @@ export const equipmentStore = {
       status: status || 'active',
       zoneId: zoneId || '',
       notes: notes || '',
+      maintenanceIntervalDays: Math.max(0, parseInt(maintenanceIntervalDays) || 0),
       createdAt: Date.now()
     };
     list.unshift(item);
@@ -62,6 +63,7 @@ export const equipmentStore = {
     const list = await this.getAll();
     const idx = list.findIndex(e => e.id === id);
     if (idx === -1) return false;
+    if (data.maintenanceIntervalDays != null) data.maintenanceIntervalDays = Math.max(0, parseInt(data.maintenanceIntervalDays) || 0);
     list[idx] = { ...list[idx], ...data, id };
     await set(EQUIP_KEY, list);
     return list[idx];
@@ -131,7 +133,22 @@ export const equipmentStore = {
     for (const e of list) {
       byType[e.type] = (byType[e.type] || 0) + 1;
     }
-    return { total, active, maintenance, broken, byType };
+    const dueList = await this.dueForMaintenance();
+    return { total, active, maintenance, broken, byType, dueCount: dueList.length, dueList };
+  },
+
+  async dueForMaintenance() {
+    const list = await this.getAll();
+    const maintAll = (await get(MAINT_KEY)) || [];
+    const now = Date.now();
+    return list.filter(eq => {
+      if (!eq.maintenanceIntervalDays || eq.status !== 'active') return false;
+      const eqMaints = maintAll.filter(m => m.equipId === eq.id).sort((a, b) => b.date.localeCompare(a.date));
+      const lastMaint = eqMaints[0];
+      const since = lastMaint ? new Date(lastMaint.date).getTime() : new Date(eq.purchaseDate || eq.createdAt).getTime();
+      const daysSince = (now - since) / 86400000;
+      return daysSince >= eq.maintenanceIntervalDays;
+    });
   }
 };
 

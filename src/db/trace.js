@@ -411,19 +411,19 @@ export const lotStore = {
 
   async byId(lotId) { return (await get(LOT_PREFIX + lotId)) || null; },
 
-  async create({ crop, variety, zoneId, area, plantedAt, note, trace }) {
+  async create({ crop, variety, zoneId, area, plantedAt, note, memberId, trace }) {
     if (!crop) throw new Error('Thiếu tên cây trồng');
     const farmId = authStore.activeFarmId || 'F1';
     const code = await nextLotCode(farmId);
     const t = trace || {};
     const lot = {
-      id: code, // code là duy nhất → dùng làm id
+      id: code,
       code,
       farmId,
       crop, variety: variety || '', zoneId: zoneId || '', area: area || '',
       plantedAt: plantedAt || new Date().toISOString().slice(0, 10),
       note: note || '',
-      // V5 — Hồ sơ chuẩn truy xuất (GS1 / VietGAP / EU / Nhật). Tuỳ chọn, append vào lô.
+      memberId: memberId || null,
       trace: {
         puc: t.puc || '',            // Mã số vùng trồng (VietGAP/Cục BVTV) — KEY xuất khẩu
         gtin: t.gtin || '',          // GS1 GTIN (mã sản phẩm toàn cầu)
@@ -497,9 +497,40 @@ export const lotStore = {
     }
 
     let phiApplied = null;
-    if (evt.materialId) {
+
+    // Xử lý tank mix — mảng materials
+    const allMats = [];
+    if (evt.materials && Array.isArray(evt.materials)) {
+      for (const m of evt.materials) {
+        if (!m.materialId) continue;
+        const mat = await materialsStore.byId(m.materialId);
+        if (mat) {
+          allMats.push({ ...m, name: mat.name, phiDays: mat.phiDays || 0 });
+          if (mat.phiDays > 0) {
+            const until = eventTs + mat.phiDays * 86400000;
+            if (!lot.phiUntil || until > lot.phiUntil) {
+              lot.phiUntil = until;
+              lot.phiSource = mat.name;
+              phiApplied = { phiDays: mat.phiDays, until };
+            }
+          }
+          // Xuất kho cho từng vật tư
+          if (m.dose) {
+            try {
+              await inventoryStore.post({
+                kind: 'raw', itemId: mat.id, itemName: mat.name, type: 'export',
+                qty: parseFloat(m.dose) || 0, unit: m.doseUnit || '', ref: lot.code, allowNeg: true,
+                doc: { operator: authStore.farmerId || '', docDate: new Date(eventTs).toISOString().slice(0, 10) },
+                note: 'Tank mix cho lô ' + lot.code
+              });
+            } catch (_) {}
+          }
+        }
+      }
+    } else if (evt.materialId) {
       const mat = await materialsStore.byId(evt.materialId);
       if (mat) {
+        allMats.push({ materialId: evt.materialId, name: mat.name, dose: evt.dose, doseUnit: evt.doseUnit, phiDays: mat.phiDays || 0 });
         evt.materialName = mat.name;
         if (mat.phiDays > 0) {
           const until = eventTs + mat.phiDays * 86400000;
@@ -509,23 +540,29 @@ export const lotStore = {
             phiApplied = { phiDays: mat.phiDays, until };
           }
         }
+        if (evt.dose) {
+          try {
+            await inventoryStore.post({
+              kind: 'raw', itemId: evt.materialId, itemName: evt.materialName, type: 'export',
+              qty: parseFloat(evt.dose) || 0, unit: evt.doseUnit || '', ref: lot.code, allowNeg: true,
+              doc: { operator: authStore.farmerId || '', docDate: new Date(eventTs).toISOString().slice(0, 10) },
+              note: 'Dùng cho lô ' + lot.code
+            });
+          } catch (_) {}
+        }
       }
     }
-    // V5.1 — dùng vật tư → ghi XUẤT kho vào sổ cái (allowNeg: nhật ký đồng ruộng không bị
-    // chặn vì lý do tồn — toàn vẹn bằng chứng > chặn kho; chênh tồn xử lý bằng kiểm kê).
-    if (evt.materialId && evt.dose) {
-      try {
-        await inventoryStore.post({
-          kind: 'raw', itemId: evt.materialId, itemName: evt.materialName, type: 'export',
-          qty: parseFloat(evt.dose) || 0, unit: evt.doseUnit || '', ref: lot.code, allowNeg: true,
-          doc: { operator: authStore.farmerId || '', docDate: new Date(evt.ts || Date.now()).toISOString().slice(0, 10) },
-          note: 'Dùng cho lô ' + lot.code
-        });
-      } catch (_) {}
+
+    // Lưu mảng materials vào event để trace
+    if (allMats.length > 1) {
+      evt.materials = allMats;
+      evt.materialName = allMats.map(m => m.name).join(' + ');
+      evt.dose = null;
+      evt.doseUnit = null;
     }
+
     const full = await this._appendEvent(lotId, evt);
     await this._save(lot);
-    // Đồng bộ về journal hiện có của WLC (endpoint đã tồn tại) — lotId là field mở rộng
     syncQueue.enqueue({
       path: '/api/journal/manual',
       method: 'POST',
@@ -594,8 +631,8 @@ export const lotStore = {
     return (authStore.traceBaseUrl || 'https://ecosyntech-farmos.netlify.app/t/').replace(/\/?$/, '/');
   },
 
-  traceUrl(lot, events) {
-    const base = `${this.traceBase()}${encodeURIComponent(lot.code)}`;
+  traceUrl(lot, events, lang = 'vi') {
+    const base = `${this.traceBase()}${encodeURIComponent(lot.code)}${lang === 'en' ? '?lang=en' : ''}`;
     if (!events || !events.length) return base;
     try {
       const payload = this.tracePayload(lot, events);

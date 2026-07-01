@@ -10,6 +10,7 @@ export async function renderMore() {
 
     <h3 style="padding:14px 16px 4px; color:var(--c-text-muted); font-size:13px; text-transform:uppercase;">V3.1 — Truy xuất nguồn gốc</h3>
     ${menuItem('lots', '🌾', 'Lô / Mùa vụ + QR', 'Truy xuất nguồn gốc · PHI lock')}
+    ${menuItem('seasonal', '📅', 'Lịch mùa vụ & Luân canh', 'Gantt · Gợi ý luân canh theo zone')}
     ${menuItem('materials', '📦', 'Vật tư + PHI', 'Phân bón · Thuốc BVTV · tồn kho')}
     ${menuItem('inventory', '🏬', 'Kho — Nhập · Xuất · Tồn', 'Chứng từ · tồn an toàn · CSV · thu hoạch→tồn')}
 
@@ -36,6 +37,7 @@ export async function renderMore() {
     ${menuItem('labor', '👷', 'Nhân công', 'Danh sách · Chấm công · Bảng lương')}
     ${menuItem('equipment', '🔧', 'Thiết bị', 'Máy móc · Bảo trì · Nhiên liệu')}
     ${menuItem('contract', '🤝', 'Hợp đồng / HTX', 'Bao tiêu · Liên kết · Giao hàng')}
+    ${menuItem('members', '👥', 'Xã viên HTX', 'Quản lý xã viên · Giao lô · Tổng sản lượng')}
     ${menuItem('soil', '🌱', 'Thổ nhưỡng', 'pH · NPK · Chất hữu cơ theo zone')}
 
     <h3 style="padding:14px 16px 4px; color:var(--c-text-muted); font-size:13px; text-transform:uppercase;">V6.2 — Bán hàng & Thanh toán</h3>

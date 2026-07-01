@@ -59,6 +59,10 @@ import { renderOrders } from './pages/orders.js';
 import { renderForecast } from './pages/forecast.js';
 import { renderAiDiagnosis } from './pages/ai-diagnosis.js';
 
+// V6.5
+import { renderSeasonal } from './pages/seasonal.js';
+import { renderMembers } from './pages/members.js';
+
 import { themeStore, fontStore } from './stores/theme.js';
 import { langStore } from './stores/i18n.js';
 
@@ -109,7 +113,10 @@ const ROUTES = {
   logistics: renderLogistics,
   orders: renderOrders,
   forecast: renderForecast,
-  'ai-diagnosis': renderAiDiagnosis
+  'ai-diagnosis': renderAiDiagnosis,
+  // V6.5
+  seasonal: renderSeasonal,
+  members: renderMembers
 };
 window.ROUTES = ROUTES;
 

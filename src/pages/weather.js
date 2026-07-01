@@ -5,6 +5,34 @@ import { get, set } from 'idb-keyval';
 const CACHE = 'cache:weather';
 const CACHE_TTL = 60 * 60 * 1000; // 1h
 
+// Kiểm tra mưa 6h tới — trả warning message hoặc null
+export async function rainCheckWarning() {
+  if (!authStore.weatherApiKey) return null;
+  const cached = await get(CACHE);
+  let data = null;
+  if (cached && (Date.now() - cached.ts) < CACHE_TTL) data = cached.data;
+  else {
+    try {
+      const lat = 10.8231, lon = 106.6297;
+      const r = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${authStore.weatherApiKey}&units=metric&lang=vi`);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      data = await r.json();
+      await set(CACHE, { data, ts: Date.now() });
+    } catch (_) {
+      if (cached) data = cached.data;
+      else return null;
+    }
+  }
+  if (!data || !data.list) return null;
+  const now = Date.now() / 1000;
+  const next6h = data.list.filter(it => it.dt > now && it.dt < now + 6 * 3600);
+  const rain = next6h.filter(it => it.rain && it.rain['3h'] > 0);
+  if (rain.length === 0) return null;
+  const maxRain = Math.max(...rain.map(it => it.rain['3h'] || 0));
+  const firstRain = new Date(rain[0].dt * 1000).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  return `⚠ Cảnh báo thời tiết: Dự kiến mưa ${maxRain}mm/3h vào ${firstRain}. Nên hoãn phun thuốc BVTV sau mưa.`;
+}
+
 export async function renderWeather() {
   if (!authStore.weatherApiKey) {
     return `
