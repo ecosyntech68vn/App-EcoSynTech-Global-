@@ -160,6 +160,8 @@ async function renderLotDetail(lotId) {
       <details>
         <summary class="btn secondary" style="display:block; text-align:center; cursor:pointer; list-style:none;">＋ Ghi hoạt động vào lô</summary>
         <form id="lot-evt-form" style="margin-top:12px;">
+          <label>Ngày thực hiện</label>
+          <input name="ts" type="datetime-local" value="${new Date().toISOString().slice(0,16)}" />
           <label>Hoạt động</label>
           <select name="type" id="evt-type">
             ${Object.entries(ACTIVITY_LABELS).filter(([k]) => !['planting','harvest'].includes(k)).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}
@@ -211,8 +213,8 @@ async function renderLotDetail(lotId) {
       <button id="lot-pdf" class="btn" style="margin-top:12px; width:100%;">📄 Xuất Phiếu truy xuất (PDF)</button>
     </div>` : ''}
 
-    <h3 style="padding:14px 16px 4px; color:var(--c-text-muted); font-size:13px; text-transform:uppercase;">Nhật ký lô (append-only · ${events.length})</h3>
-    ${events.slice().reverse().map(e => `
+    <h3 style="padding:14px 16px 4px; color:var(--c-text-muted); font-size:13px; text-transform:uppercase;">Dòng thời gian (từ xuống giống → nay · ${events.length})</h3>
+    ${events.map(e => `
       <div class="card">
         <div class="row">
           <div class="card-title" style="font-size:14px;">${ACTIVITY_LABELS[e.type] || e.type}</div>
@@ -312,9 +314,11 @@ window.wire_lots = function() {
     e.preventDefault();
     const fd = new FormData(e.target);
     try {
+      const tsRaw = fd.get('ts');
+      const ts = tsRaw ? new Date(tsRaw).getTime() : Date.now();
       const { phiApplied } = await lotStore.recordActivity(currentLotId, {
         type: fd.get('type'), materialId: fd.get('materialId') || null,
-        dose: fd.get('dose'), doseUnit: fd.get('doseUnit'), note: fd.get('note')
+        dose: fd.get('dose'), doseUnit: fd.get('doseUnit'), note: fd.get('note'), ts
       });
       window.showToast?.(phiApplied ? `✓ Đã ghi. 🔒 Khoá thu hoạch ${phiApplied.phiDays} ngày (PHI)` : '✓ Đã ghi sự kiện', 'ok');
       nav();
