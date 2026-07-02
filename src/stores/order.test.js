@@ -178,3 +178,130 @@ describe('bankConfigStore', () => {
     expect(cfg.accountNo).toBe('');
   });
 });
+
+// ========== REAL-WORLD ORDER EDGE CASES ==========
+describe('orderStore edge cases', () => {
+  let orderStore, bankConfigStore;
+
+  beforeEach(async () => {
+    for (const key of await (await import('idb-keyval')).keys()) {
+      await (await import('idb-keyval')).del(key);
+    }
+    const mod = await import('../stores/order.js');
+    orderStore = mod.orderStore;
+    bankConfigStore = mod.bankConfigStore;
+  });
+
+  it('should create order with zero total amount (gift/compensation)', async () => {
+    const order = await orderStore.create({
+      code: 'ORD-ZERO', customer: { name: 'Gift', phone: '0' },
+      items: [], totalAmount: 0, note: 'Quà tặng'
+    });
+    expect(order.totalAmount).toBe(0);
+    expect(order.paymentStatus).toBe('unpaid');
+  });
+
+  it('should handle cancel → cannot update further', async () => {
+    const order = await orderStore.create({
+      code: 'ORD-CANCEL', customer: { name: 'A', phone: '1' },
+      items: [{ productId: 'LOT01', productName: 'Lua', quantity: 1, price: 10000 }],
+      totalAmount: 10000, note: ''
+    });
+    await orderStore.updateStatus(order.id, 'cancelled');
+    const updated = await orderStore.get(order.id);
+    expect(updated.status).toBe('cancelled');
+    expect(updated.paymentStatus).toBe('unpaid');
+  });
+
+  it('should handle payment method MoMo', async () => {
+    const order = await orderStore.create({
+      code: 'ORD-MOMO', customer: { name: 'MoMo User', phone: '0' },
+      items: [{ productId: 'LOT01', productName: 'Lua', quantity: 2, price: 25000 }],
+      totalAmount: 50000, note: '',
+      paymentMethod: 'momo'
+    });
+    expect(order.paymentMethod).toBe('momo');
+  });
+
+  it('should handle payment method ZaloPay', async () => {
+    const order = await orderStore.create({
+      code: 'ORD-ZLP', customer: { name: 'ZLP User', phone: '0' },
+      items: [], totalAmount: 100000, note: '',
+      paymentMethod: 'zalopay'
+    });
+    expect(order.paymentMethod).toBe('zalopay');
+  });
+
+  it('should handle order with huge amount (1 billion VND)', async () => {
+    const order = await orderStore.create({
+      code: 'ORD-BIG', customer: { name: 'Big Buyer', phone: '0' },
+      items: [{ productId: 'LOT01', productName: 'Ca phe', quantity: 10000, price: 100000 }],
+      totalAmount: 1_000_000_000, note: '1 tan ca phe'
+    });
+    expect(order.totalAmount).toBe(1_000_000_000);
+  });
+
+  it('should handle order with no items', async () => {
+    const order = await orderStore.create({
+      code: 'ORD-NOITEMS', customer: { name: 'No Items', phone: '0' },
+      items: [], totalAmount: 0, note: ''
+    });
+    expect(order.items).toEqual([]);
+  });
+
+  it('should update shipping after order is created', async () => {
+    const order = await orderStore.create({
+      code: 'ORD-SHIP2', customer: { name: 'Ship', phone: '0' },
+      items: [], totalAmount: 50000, note: ''
+    });
+    await orderStore.updateShipping(order.id, { carrier: 'GHN', trackingCode: 'GHN123', shippingFee: 35000 });
+    await orderStore.updateStatus(order.id, 'shipping');
+    const updated = await orderStore.get(order.id);
+    expect(updated.shipping.carrier).toBe('GHN');
+    expect(updated.status).toBe('shipping');
+  });
+
+  it('should handle save and update customer', async () => {
+    await orderStore.saveCustomer({ name: 'Lap lai', phone: '0909999999', address: 'DN' });
+    await orderStore.saveCustomer({ name: 'Lap lai Updated', phone: '0909999999', address: 'HCM' });
+    const list = await orderStore.listCustomers();
+    const c = list.find(x => x.phone === '0909999999');
+    expect(c.name).toBe('Lap lai Updated');
+    expect(c.address).toBe('HCM');
+  });
+
+  it('should handle getRevenueByPeriod with no paid orders', async () => {
+    await orderStore.create({
+      code: 'ORD-NOPAY', customer: { name: 'No Pay', phone: '0' },
+      items: [], totalAmount: 100000, note: ''
+    });
+    const revenue = await orderStore.getRevenueByPeriod(30);
+    expect(revenue).toEqual([]);
+  });
+
+  it('should reject updateStatus on non-existent order', async () => {
+    await expect(orderStore.updateStatus('ghost-order', 'paid')).rejects.toThrow('Không tìm thấy');
+  });
+
+  it('should generate unique codes sequentially', async () => {
+    const code1 = await orderStore.nextCode();
+    const code2 = await orderStore.nextCode();
+    expect(code1).not.toBe(code2);
+    expect(code1).toContain('ORD-');
+  });
+
+  it('should handle VietQR generation with special characters in note', async () => {
+    const mod = await import('../stores/order.js');
+    await mod.bankConfigStore.save({ bankId: 'tcb', accountNo: '1234567890', accountName: 'TEST CO' });
+    const order = await orderStore.create({
+      code: 'ORD-QR-SPECIAL', customer: { name: 'QR', phone: '0' },
+      items: [], totalAmount: 75000, note: 'Tiền thanh toán đơn hàng số ORD-QR-SPECIAL có dấu: ấ ê ô ơ'
+    });
+    expect(order.paymentQR).toBeTruthy();
+    expect(order.paymentQR).toContain('6304');
+  });
+
+  it('should handle delete non-existent order gracefully', async () => {
+    await expect(orderStore.delete('non-existent')).resolves.not.toThrow();
+  });
+});

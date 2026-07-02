@@ -9,13 +9,14 @@ export const auditStore = {
 
   async log(event) {
     const all = await this.all();
+    const { actor: _a, role: _r, id: _i, ts: _t, timestamp: _ts, ...safeEvent } = event || {};
     const entry = {
       id: `aud_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       ts: Date.now(),
       timestamp: new Date().toISOString(),
       actor: authStore.farmerId || 'unknown',
       role: authStore.role || 'farmer',
-      ...event
+      ...safeEvent
     };
     all.unshift(entry);
     await set(AUDIT_KEY, all.slice(0, MAX_ENTRIES));

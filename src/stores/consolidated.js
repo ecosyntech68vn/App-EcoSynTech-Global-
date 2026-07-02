@@ -154,12 +154,13 @@ export const consolidatedStore = {
 
     const totalCost = financeEntries.filter(e => e.type === 'expense').reduce((s, e) => s + e.amount, 0);
     const totalRevenue = financeEntries.filter(e => e.type === 'revenue').reduce((s, e) => s + e.amount, 0);
-    const inspSummary = inspectionStore.getSummary(lotId);
+    const inspSummary = await safe(() => inspectionStore.getSummary(lotId), null);
 
     return {
       lotId,
       finance: { totalCost, totalRevenue, profit: totalRevenue - totalCost },
       inspections: inspections,
+      inspSummary,
       genealogy,
       processing: processing.length,
       coldChainLogs: coldChain.length,

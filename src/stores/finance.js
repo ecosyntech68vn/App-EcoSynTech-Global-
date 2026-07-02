@@ -128,17 +128,24 @@ export const financeStore = {
     };
   },
 
+  csvCell(v) {
+    const s = String(v ?? '');
+    if (/^[=+\-@]/.test(s)) return "'" + s;
+    return s.includes(',') ? '"' + s.replace(/"/g, '""') + '"' : s;
+  },
+
   async exportCsv(lotId) {
     const entries = lotId ? await this.getByLot(lotId) : await this.getAll();
     if (!entries.length) return '';
     const header = 'ID,Loại,Danh mục,Lô,Ngày,Số tiền,Ghi chú,Người mua,Ngày tạo';
+    const esc = (v) => this.csvCell(v);
     const rows = entries.map(e => {
       const catList = CATEGORIES[e.type] || [];
       const catLabel = catList.find(c => c.id === e.category)?.label || e.category;
       return [
-        e.id, e.type === 'expense' ? 'Chi' : 'Thu', catLabel,
-        e.lotId || '', e.date || '', e.amount, (e.note || '').replace(/,/g, ';'),
-        e.buyer || '', new Date(e.createdAt).toISOString().slice(0, 10)
+        esc(e.id), esc(e.type === 'expense' ? 'Chi' : 'Thu'), esc(catLabel),
+        esc(e.lotId), esc(e.date), esc(e.amount), esc((e.note || '').replace(/,/g, ';')),
+        esc(e.buyer), esc(new Date(e.createdAt).toISOString().slice(0, 10))
       ].join(',');
     });
     return header + '\n' + rows.join('\n');

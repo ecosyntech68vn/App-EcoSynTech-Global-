@@ -73,6 +73,21 @@ jobs:
             echo "Keystore decoded: $(wc -c < android/app/release.keystore) bytes"
           fi
 
+      - name: Write signing config to gradle.properties
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -f android/app/release.keystore ] && [ -n "$KEYSTORE_PASSWORD" ]; then
+            cat >> android/gradle.properties <<EOF
+          signing.store.file=$PWD/android/app/release.keystore
+          signing.store.password=$KEYSTORE_PASSWORD
+          signing.key.alias=$KEY_ALIAS
+          signing.key.password=$KEY_PASSWORD
+          EOF
+          fi
+
       - name: Build Debug APK
         run: |
           cd android
@@ -80,38 +95,26 @@ jobs:
           ./gradlew assembleDebug
 
       - name: Build Release APK (signed if secrets present)
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           cd android
-          if [ -f app/release.keystore ] && [ -n "$KEYSTORE_PASSWORD" ]; then
-            ./gradlew assembleRelease \
-              -Pandroid.injected.signing.store.file=$PWD/app/release.keystore \
-              -Pandroid.injected.signing.store.password="$KEYSTORE_PASSWORD" \
-              -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
-              -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
+          if [ -f app/release.keystore ]; then
+            ./gradlew assembleRelease
           else
             ./gradlew assembleRelease
           fi
 
       - name: Build Release AAB (signed if secrets present)
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           cd android
-          if [ -f app/release.keystore ] && [ -n "$KEYSTORE_PASSWORD" ]; then
-            ./gradlew bundleRelease \
-              -Pandroid.injected.signing.store.file=$PWD/app/release.keystore \
-              -Pandroid.injected.signing.store.password="$KEYSTORE_PASSWORD" \
-              -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
-              -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
+          if [ -f app/release.keystore ]; then
+            ./gradlew bundleRelease
           else
             ./gradlew bundleRelease
           fi
+
+      - name: Clean up keystore from runner
+        if: always()
+        run: rm -f android/app/release.keystore
 
       - name: Rename artifacts with version tag
         run: |
@@ -122,7 +125,7 @@ jobs:
           mkdir -p dist
           cp android/app/build/outputs/apk/debug/app-debug.apk     dist/farmos-${VERSION}-debug.apk    || true
           cp android/app/build/outputs/apk/release/app-release.apk dist/farmos-${VERSION}-release.apk  || true
-          cp android/app/build/outputs/apk/release/app-release-unsigned.apk dist/farmos-${VERSION}-release-unsigned.apk  || true
+
           cp android/app/build/outputs/bundle/release/app-release.aab dist/farmos-${VERSION}-release.aab || true
           ls -la dist/
 
@@ -140,7 +143,7 @@ jobs:
           files: |
             dist/farmos-*-debug.apk
             dist/farmos-*-release.apk
-            dist/farmos-*-release-unsigned.apk
+
             dist/farmos-*-release.aab
           generate_release_notes: true
           body: |

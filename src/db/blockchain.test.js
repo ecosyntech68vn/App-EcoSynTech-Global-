@@ -17,13 +17,12 @@ vi.mock('../stores/audit.js', () => ({
   auditStore: { log: vi.fn(), logConfig: vi.fn() }
 }));
 
-vi.mock('../db/trace.js', () => ({
-  lotsStore: { list: vi.fn(async () => [{ id: 'LOT001', name: 'Ca chua', crop: 'Ca chua' }]) },
-  validateGTIN: (g) => typeof g === 'string' && /^\d{13}$/.test(g),
-  generateGTIN13: (b) => b && b.length === 12 ? b + '8' : '',
-  gs1DigitalLink: (g, lot, s) => g ? `https://ecosyntech.com/trace/01/${g}/10/${lot || ''}` : '',
-  formatGS1AIString: (g, lot, s) => g ? `01${g}10${lot || ''}${s ? '21' + s : ''}` : '',
-  buildEPCISEvent: (p) => ({ isA: 'ObjectEvent', gtin: p.gtin, lot: p.lot })
+vi.mock('../stores/secure.js', () => ({
+  secureStore: {
+    get: vi.fn(async () => null),
+    set: vi.fn(),
+    remove: vi.fn()
+  }
 }));
 
 function clearStore() {
@@ -215,5 +214,103 @@ describe('logisticsStore', () => {
   it('should reject without receiverName', async () => {
     const s = await mod.logisticsStore.createShipment({ carrierId: 'vnpost', receiverName: '' });
     expect(s).toBeNull();
+  });
+
+  // ========== REAL-WORLD EDGE CASES ==========
+  it('should handle shipment with negative COD', async () => {
+    const s = await mod.logisticsStore.createShipment({ carrierId: 'vnpost', receiverName: 'A', receiverAddr: 'HN', cod: -1000 });
+    expect(s).not.toBeNull();
+    expect(s.cod).toBe(-1000);
+  });
+
+  it('should handle unknown carrier as custom carrier', async () => {
+    const s = await mod.logisticsStore.createShipment({ carrierId: 'unknown_carrier', receiverName: 'A', receiverAddr: 'HN' });
+    expect(s).not.toBeNull();
+    expect(s.carrierId).toBe('unknown_carrier');
+  });
+
+  it('should handle shipment with zero weight', async () => {
+    const s = await mod.logisticsStore.createShipment({ carrierId: 'vnpost', receiverName: 'A', receiverAddr: 'HN', weight: 0 });
+    expect(s).not.toBeNull();
+  });
+});
+
+// ========== REAL-WORLD BLOCKCHAIN EDGE CASES ==========
+describe('blockchainStore edge cases', () => {
+  let mod;
+  beforeEach(async () => {
+    clearStore();
+    mod = await import('../stores/blockchain.js');
+  });
+
+  it('should handle offline fallback when Aptos not connected', async () => {
+    const tx = await mod.blockchainStore.recordBatch({
+      batchId: 'LOT-OFFLINE', productName: 'Test offline', offline: true
+    });
+    expect(tx).not.toBeNull();
+    expect(tx.hash).toMatch(/^0x/);
+    expect(tx.hash.length).toBe(66);
+  });
+
+  it('should verify hash - negative case with tampered data', async () => {
+    await mod.blockchainStore.recordBatch({ batchId: 'LOT-TAMPER', productName: 'Original' });
+    const txs = await mod.blockchainStore.getBatchChain('LOT-TAMPER');
+    const falseHash = '0x' + 'f'.repeat(64);
+    const result = await mod.blockchainStore.verifyHash('LOT-TAMPER', falseHash);
+    expect(result.verified).toBe(false);
+  });
+
+  it('should generate GS1 link with minimal fields', () => {
+    const link = mod.blockchainStore.generateGS1DigitalLink({ gtin: '08938561601003' });
+    expect(link).toContain('08938561601003');
+  });
+
+  it('should generate GS1 QR data with special chars in batch', () => {
+    const data = mod.blockchainStore.generateGS1QRData('8938561601003', 'LOT/2026/001', 'S-001');
+    expect(data).toContain('8938561601003');
+    expect(data).toContain('2026');
+  });
+
+  it('should return empty chain for missing batch', async () => {
+    const chain = await mod.blockchainStore.getBatchChain('GHOST-BATCH');
+    expect(chain).toEqual([]);
+  });
+
+  it('should handle recordStage (creates tx even without prior batch)', async () => {
+    const tx = await mod.blockchainStore.recordStage({ batchId: 'ORPHAN', stage: 'growing' });
+    expect(tx).not.toBeNull();
+    expect(tx.type).toBe('stage_growing');
+    expect(tx.payload.batchId).toBe('ORPHAN');
+  });
+
+  it('should handle recordExport (creates tx even without prior batch)', async () => {
+    const tx = await mod.blockchainStore.recordExport({ batchId: 'NOBATCH', buyer: 'Unknown' });
+    expect(tx).not.toBeNull();
+    expect(tx.type).toBe('export');
+  });
+
+  it('should handle export with empty destination', async () => {
+    await mod.blockchainStore.recordBatch({ batchId: 'LOT-EMPTYDEST', productName: 'Test' });
+    const tx = await mod.blockchainStore.recordExport({
+      batchId: 'LOT-EMPTYDEST', buyer: 'Buyer', destination: '', quantity: 100, unit: 'kg'
+    });
+    expect(tx).not.toBeNull();
+    expect(tx.payload.destination).toBe('');
+  });
+
+  it('should compute summary with no data', async () => {
+    const summary = await mod.blockchainStore.getSummary();
+    expect(summary.totalTx).toBe(0);
+    expect(summary.uniqueBatches).toBe(0);
+  });
+
+  it('should verify empty batch integrity', async () => {
+    const integrity = await mod.blockchainStore.verifyBatchIntegrity('EMPTY');
+    expect(integrity.verified).toBe(false);
+  });
+
+  it('should handle export to national system with invalid batch', async () => {
+    const result = await mod.blockchainStore.exportToNationalSystem('INVALID');
+    expect(result).toBeNull();
   });
 });

@@ -121,7 +121,7 @@ export const processingStore = {
 
   async getByLot(lotId) {
     const all = await this.getAll();
-    return all.filter(p => p.inputLots.some(i => i.lotId === lotId) || p.outputProduct.includes(lotId));
+    return all.filter(p => p.inputLots.some(i => i.lotId === lotId) || p.outputProduct === lotId);
   },
 
   async getCostSummary(dateFrom, dateTo) {

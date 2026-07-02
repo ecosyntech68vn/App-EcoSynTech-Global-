@@ -3,8 +3,10 @@
 // Fallback về local hash khi offline
 
 import { get, set } from 'idb-keyval';
+import { secureStore } from './secure.js';
 
 const CONFIG_KEY = 'aptos:config';
+const PK_SECURE_KEY = 'aptos_private_key';
 
 let _sdk = null;
 let _client = null;
@@ -25,18 +27,22 @@ async function getSdk() {
 export const aptosConfig = {
   async load() {
     const cfg = await get(CONFIG_KEY);
-    return cfg || {
-      network: 'testnet',
-      fullnodeUrl: 'https://api.testnet.aptoslabs.com/v1',
-      faucetUrl: 'https://faucet.testnet.aptoslabs.com',
-      moduleAddress: '',
-      privateKey: '',
-      enabled: false
+    const pk = await secureStore.get(PK_SECURE_KEY);
+    return {
+      network: cfg?.network || 'testnet',
+      fullnodeUrl: cfg?.fullnodeUrl || 'https://api.testnet.aptoslabs.com/v1',
+      faucetUrl: cfg?.faucetUrl || 'https://faucet.testnet.aptoslabs.com',
+      moduleAddress: cfg?.moduleAddress || '',
+      privateKey: pk || '',
+      enabled: cfg?.enabled || false
     };
   },
 
   async save(cfg) {
-    await set(CONFIG_KEY, cfg);
+    const { privateKey, ...safe } = cfg || {};
+    await set(CONFIG_KEY, safe);
+    if (privateKey) await secureStore.set(PK_SECURE_KEY, privateKey);
+    else await secureStore.remove(PK_SECURE_KEY);
   },
 
   async isConfigured() {
@@ -316,5 +322,4 @@ export const aptosService = {
 
 if (typeof window !== 'undefined') {
   window.aptosService = aptosService;
-  window.aptosConfig = aptosConfig;
 }

@@ -206,4 +206,86 @@ describe('inventoryStore', () => {
     const fin = await inventoryStore.finishedList();
     expect(fin.length).toBe(1);
   });
+
+  // ========== REAL-WORLD EDGE CASES ==========
+
+  it('should handle harvest with zero quantity (no crash)', async () => {
+    const lot = await lotStore.create({ crop: 'Ca chua', zoneId: 'Z1', plantedAt: '2026-01-01' });
+    const r = await lotStore.harvest(lot.id, { qty: 0, unit: 'kg' });
+    expect(r.status).toBe('harvested');
+  });
+
+  it('should handle harvest with negative quantity', async () => {
+    const lot = await lotStore.create({ crop: 'Ca chua', zoneId: 'Z1', plantedAt: '2026-01-01' });
+    const r = await lotStore.harvest(lot.id, { qty: -10, unit: 'kg' });
+    expect(r.harvest.qty).toBe(-10);
+  });
+
+  it('should handle empty type as "other" activity', async () => {
+    const lot = await lotStore.create({ crop: 'Lua', zoneId: 'Z1' });
+    const { event } = await lotStore.recordActivity(lot.id, { type: '', note: 'test' });
+    expect(event.type).toBe('other');
+  });
+
+  it('should reject activity on non-existent lot', async () => {
+    await expect(lotStore.recordActivity('nonexistent-id', { type: 'irrigation', note: 'test' })).rejects.toThrow();
+  });
+
+  it('should reject harvest on non-existent lot', async () => {
+    await expect(lotStore.harvest('fake-lot', { qty: 10, unit: 'kg' })).rejects.toThrow();
+  });
+
+  it('should create lot with auto-generated unique code', async () => {
+    const lot1 = await lotStore.create({ crop: 'Rau', zoneId: 'Z1' });
+    const lot2 = await lotStore.create({ crop: 'Rau', zoneId: 'Z1' });
+    expect(lot1.code).not.toBe(lot2.code);
+  });
+
+  it('should handle lot with extremely long crop name', async () => {
+    const longName = 'A'.repeat(500);
+    const lot = await lotStore.create({ crop: longName, zoneId: 'Z1' });
+    expect(lot.crop).toBe(longName);
+  });
+
+  it('should handle lot with special characters in note', async () => {
+    const note = '<script>alert("xss")</script> & "quotes"';
+    const lot = await lotStore.create({ crop: 'Lua', zoneId: 'Z1', note });
+    expect(lot.note).toContain('script');
+  });
+
+  it('should allow PHI override by manager even on same-day spray', async () => {
+    const lot = await lotStore.create({ crop: 'Rau muong', zoneId: 'Z1' });
+    await lotStore.recordActivity(lot.id, { type: 'pest', materialId: 'm_mancozeb', dose: '25', doseUnit: 'g/10L' });
+    const harvested = await lotStore.harvest(lot.id, { qty: 30, unit: 'kg', overridePhi: true });
+    expect(harvested.status).toBe('harvested');
+    expect(harvested.harvest.phiOverridden).toBe(true);
+  });
+
+  it('should list events after multiple activities', async () => {
+    const lot = await lotStore.create({ crop: 'Ca', zoneId: 'Z1' });
+    await lotStore.recordActivity(lot.id, { type: 'irrigation', note: 'Tuoi sang' });
+    await lotStore.recordActivity(lot.id, { type: 'fertilizer', note: 'Bon NPK' });
+    await lotStore.recordActivity(lot.id, { type: 'pest', materialId: 'm_abamectin', dose: '10', doseUnit: 'ml/10L' });
+    const events = await lotStore.events(lot.id);
+    expect(events.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('should handle events for non-existent lot', async () => {
+    const events = await lotStore.events('nonexistent');
+    expect(events).toBeTruthy();
+  });
+
+  it('should handle harvest with decimal quantity', async () => {
+    const lot = await lotStore.create({ crop: 'Dau tay', zoneId: 'Z1', plantedAt: '2026-05-01' });
+    const harvested = await lotStore.harvest(lot.id, { qty: 2.5, unit: 'kg' });
+    expect(harvested.harvest.qty).toBe(2.5);
+  });
+
+  it('should track PHI source after pesticide application', async () => {
+    const lot = await lotStore.create({ crop: 'Xa lach', zoneId: 'Z1' });
+    await lotStore.recordActivity(lot.id, { type: 'pest', materialId: 'm_abamectin', dose: '5', doseUnit: 'ml/L' });
+    const updated = await lotStore.byId(lot.id);
+    expect(updated.phiSource).toBeTruthy();
+    expect(updated.phiUntil).toBeGreaterThan(Date.now());
+  });
 });
