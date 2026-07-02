@@ -16,17 +16,18 @@ export const bgsync = {
 
   stop() { if (this.intervalId) { clearInterval(this.intervalId); this.intervalId = null; } },
 
-  // FIX #6 — gọi sau login() và sau khi đổi Settings: runner cần url + token để poll alert
+  // FIX #6 — gọi sau login() và sau khi đổi Settings: runner cần url để poll alert
+  // KHÔNG gửi JWT (CapacitorKV không mã hoá → lộ token). Foreground pushStore
+  // đã poll alert 30s/lần, runner chỉ dùng để kiểm tra khi app killed.
   async pushConfigToRunner() {
     try {
       await BackgroundRunner.dispatchEvent({
         label: 'vn.ecosyntech.farmos.sync',
         event: 'saveConfig',
-        details: { url: authStore.url || '', token: authStore.token || '' }
+        details: { url: authStore.url || '', token: '' }
       });
-      console.log('[bgsync] runner config updated');
+      console.log('[bgsync] runner config updated (token omitted for security)');
     } catch (e) {
-      // Browser dev / plugin chưa sẵn sàng — bỏ qua
       console.warn('[bgsync] pushConfigToRunner skip:', e.message);
     }
   },

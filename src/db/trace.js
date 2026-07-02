@@ -545,6 +545,13 @@ export const lotStore = {
 
     let phiApplied = null;
 
+    // Helper: tính until theo calendar day (không dùng 86400000 ms)
+    const _phiUntil = (ts, days) => {
+      const tz = authStore.timezoneOffset ?? 7;
+      const d = new Date(ts + tz * 3600000);
+      return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + days, 0 - tz, 0, 0, 0);
+    };
+
     // Xử lý tank mix — mảng materials
     const allMats = [];
     if (evt.materials && Array.isArray(evt.materials)) {
@@ -554,7 +561,7 @@ export const lotStore = {
         if (mat) {
           allMats.push({ ...m, name: mat.name, phiDays: mat.phiDays || 0 });
           if (mat.phiDays > 0) {
-            const until = eventTs + mat.phiDays * 86400000;
+            const until = _phiUntil(eventTs, mat.phiDays);
             if (!lot.phiUntil || until > lot.phiUntil) {
               lot.phiUntil = until;
               lot.phiSource = mat.name;
@@ -580,7 +587,7 @@ export const lotStore = {
         allMats.push({ materialId: evt.materialId, name: mat.name, dose: evt.dose, doseUnit: evt.doseUnit, phiDays: mat.phiDays || 0 });
         evt.materialName = mat.name;
         if (mat.phiDays > 0) {
-          const until = eventTs + mat.phiDays * 86400000;
+          const until = _phiUntil(eventTs, mat.phiDays);
           if (!lot.phiUntil || until > lot.phiUntil) {
             lot.phiUntil = until;
             lot.phiSource = mat.name;
@@ -626,11 +633,15 @@ export const lotStore = {
   // Kiểm tra khoá PHI — trả {locked, until, source, daysLeft}
   phiStatus(lot) {
     if (!lot.phiUntil || Date.now() >= lot.phiUntil) return { locked: false };
+    const tz = authStore.timezoneOffset ?? 7;
+    const now = new Date(Date.now() + tz * 3600000);
+    const until = new Date(lot.phiUntil + tz * 3600000);
+    const d = Math.round((until - now) / 86400000);
     return {
       locked: true,
       until: lot.phiUntil,
       source: lot.phiSource,
-      daysLeft: Math.ceil((lot.phiUntil - Date.now()) / 86400000)
+      daysLeft: Math.max(1, d)
     };
   },
 

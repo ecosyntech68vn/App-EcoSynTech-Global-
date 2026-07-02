@@ -65,8 +65,8 @@ export const syncQueue = {
             await set(id, data);
           }
         } catch (err) {
-          // network — keep, exit loop
-          break;
+          // network — keep, continue với item tiếp theo
+          continue;
         }
       }
     } finally {

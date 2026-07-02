@@ -278,10 +278,10 @@ export const authStore = {
 
   async refreshToken() {
     if (!this.refresh) throw new Error('no refresh token');
-    const r = await fetch(`${this.url}/api/auth/refresh`, {
+    const r = await withTimeout(fetch(`${this.url}/api/auth/refresh`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken: this.refresh })
-    });
+    }), LOGIN_TIMEOUT_MS);
     if (!r.ok) throw new Error('refresh fail');
     const d = await r.json();
     this.token = d.accessToken || d.token;

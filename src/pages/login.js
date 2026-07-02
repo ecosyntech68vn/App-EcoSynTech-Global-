@@ -2,6 +2,8 @@
 // V3.0.1 — Local mode default, first-run banner, URL only required when mode!=local
 import { authStore } from '../stores/auth.js';
 
+function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
 export async function renderLogin() {
   // Load last URL from preferences
   const lastUrl = authStore.url || '';
@@ -31,7 +33,7 @@ export async function renderLogin() {
 
         <div id="url-row" style="${currentMode==='local'?'display:none;':''}">
           <label>Server URL (chỉ khi không phải Local)</label>
-          <input name="url" type="url" value="${lastUrl}"
+          <input name="url" type="url" value="${escapeHtml(lastUrl)}"
                  placeholder="http://192.168.1.100:3000" />
         </div>
 
