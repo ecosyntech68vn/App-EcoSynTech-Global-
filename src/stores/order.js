@@ -5,6 +5,7 @@ const ORDER_PREFIX = 'order:';
 const SEQ_KEY = 'order:seq';
 const BANK_CFG_KEY = 'order:bank_config';
 const CUSTOMER_PREFIX = 'order:customer:';
+const ORDER_INDEX_KEY = 'order:index';
 
 const BANK_LIST = [
   { id: 'vcb', bin: '970436', name: 'Vietcombank' },
@@ -69,9 +70,22 @@ export const bankConfigStore = {
   getBankList() { return BANK_LIST; }
 };
 
+async function buildOrderIndex() {
+  let idx = await get(ORDER_INDEX_KEY);
+  if (idx && Array.isArray(idx) && idx.length > 0) return idx;
+  const allKeys = await keys();
+  const orderKeys = allKeys.filter(k => typeof k === 'string' && k.startsWith(ORDER_PREFIX) && k !== ORDER_INDEX_KEY);
+  idx = [];
+  for (const k of orderKeys) {
+    const v = await get(k);
+    if (v && v.id) idx.push(v.id);
+  }
+  if (idx.length > 0) await set(ORDER_INDEX_KEY, idx);
+  return idx;
+}
+
 export const orderStore = {
   async nextCode() {
-    // Chỉ generate code — KHÔNG lưu seq (tránh mất seq nếu create thất bại)
     const d = new Date();
     const yy = String(d.getFullYear()).slice(2);
     const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -118,15 +132,22 @@ export const orderStore = {
     }
 
     await set(ORDER_PREFIX + order.id, order);
-    // Chỉ persist seq sau khi save thành công
     if (_seq) await set(SEQ_KEY, _seq);
+    const idx = await buildOrderIndex();
+    if (!idx.includes(order.id)) {
+      idx.push(order.id);
+      await set(ORDER_INDEX_KEY, idx);
+    }
     return order;
   },
 
   async list() {
-    const allKeys = await keys();
-    const orderKeys = allKeys.filter(k => typeof k === 'string' && k.startsWith(ORDER_PREFIX));
-    const orders = await Promise.all(orderKeys.map(k => get(k)));
+    const idx = await buildOrderIndex();
+    const orders = [];
+    for (const id of idx) {
+      const v = await get(ORDER_PREFIX + id);
+      if (v) orders.push(v);
+    }
     orders.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
     return orders;
   },
@@ -162,6 +183,8 @@ export const orderStore = {
 
   async delete(id) {
     await del(ORDER_PREFIX + id);
+    const idx = await buildOrderIndex();
+    await set(ORDER_INDEX_KEY, idx.filter(i => i !== id));
   },
 
   async saveCustomer(customer) {

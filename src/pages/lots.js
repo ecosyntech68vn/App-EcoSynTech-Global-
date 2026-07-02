@@ -11,6 +11,8 @@ import qrcode from 'qrcode-generator';
 
 let currentLotId = null; // state: null = list view, khác null = detail view
 
+export function setCurrentLotId(id) { currentLotId = id; }
+
 export async function renderLots() {
   if (currentLotId) return renderLotDetail(currentLotId);
   return renderLotList();

@@ -14,6 +14,8 @@ const LOT_PREFIX = 'lot:';
 const EVT_PREFIX = 'traceevt:';
 const MAT_KEY = 'materials:catalog';
 const SEQ_KEY = 'lot:seq';
+const LOT_INDEX_KEY = 'lot:index';
+const EVT_INDEX_PREFIX = 'traceevt:idx:';
 
 export const ACTIVITY_LABELS = {
   planting: '🌱 Xuống giống',
@@ -397,13 +399,38 @@ async function nextLotCode(farmId) {
   return `EST-${farm}-${ymd}-${pad2(seqMap[key])}`;
 }
 
+async function buildLotIndex() {
+  let idx = await get(LOT_INDEX_KEY);
+  if (idx && Array.isArray(idx) && idx.length > 0) return idx;
+  const all = await keys();
+  const ids = all.filter(k => typeof k === 'string' && k.startsWith(LOT_PREFIX) && k !== SEQ_KEY && !k.startsWith('lot:seq') && k !== LOT_INDEX_KEY);
+  idx = [];
+  for (const id of ids) {
+    const v = await get(id);
+    if (v && v.code) idx.push(id.replace(LOT_PREFIX, ''));
+  }
+  if (idx.length > 0) await set(LOT_INDEX_KEY, idx);
+  return idx;
+}
+
+async function ensureEventIndex(lotId) {
+  const idxKey = EVT_INDEX_PREFIX + lotId;
+  let idx = await get(idxKey);
+  if (idx && Array.isArray(idx) && idx.length > 0) return idx;
+  const all = await keys();
+  const prefix = `${EVT_PREFIX}${lotId}:`;
+  const ids = all.filter(k => typeof k === 'string' && k.startsWith(prefix));
+  idx = ids.map(id => id.replace(prefix, ''));
+  if (idx.length > 0) await set(idxKey, idx);
+  return idx;
+}
+
 export const lotStore = {
   async list() {
-    const all = await keys();
-    const ids = all.filter(k => typeof k === 'string' && k.startsWith(LOT_PREFIX) && k !== SEQ_KEY && !k.startsWith('lot:seq'));
+    const idx = await buildLotIndex();
     const lots = [];
-    for (const id of ids) {
-      const v = await get(id);
+    for (const id of idx) {
+      const v = await get(LOT_PREFIX + id);
       if (v && v.code) lots.push(v);
     }
     return lots.sort((a, b) => b.createdAt - a.createdAt);
@@ -445,6 +472,11 @@ export const lotStore = {
       createdAt: Date.now()
     };
     await set(LOT_PREFIX + lot.id, lot);
+    const idx = await buildLotIndex();
+    if (!idx.includes(lot.id)) {
+      idx.push(lot.id);
+      await set(LOT_INDEX_KEY, idx);
+    }
     await this._appendEvent(lot.id, { type: 'planting', note: `Tạo lô ${code} — ${crop}${variety ? ' (' + variety + ')' : ''}` });
     this._syncLot(lot, 'create');
     return lot;
@@ -470,16 +502,18 @@ export const lotStore = {
       ts: evt.ts || Date.now()
     };
     await set(id, full);
+    const idxKey = EVT_INDEX_PREFIX + lotId;
+    const idx = await ensureEventIndex(lotId);
+    idx.push(id.replace(`${EVT_PREFIX}${lotId}:`, ''));
+    await set(idxKey, idx);
     return full;
   },
 
   async events(lotId) {
-    const all = await keys();
-    const prefix = `${EVT_PREFIX}${lotId}:`;
-    const ids = all.filter(k => typeof k === 'string' && k.startsWith(prefix));
+    const idx = await ensureEventIndex(lotId);
     const out = [];
-    for (const id of ids) {
-      const v = await get(id);
+    for (const eid of idx) {
+      const v = await get(`${EVT_PREFIX}${lotId}:${eid}`);
       if (v) out.push(v);
     }
     return out.sort((a, b) => a.ts - b.ts);

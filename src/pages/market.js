@@ -49,7 +49,7 @@ export async function renderMarket() {
           <span class="pill" style="background:${o.status === 'confirmed' ? '#2E7D32' : '#FF8F00'};">${o.status === 'confirmed' ? '✅ Xác nhận' : '⏳ Chờ'}</span>
         </div>
         <div class="card-meta">${escapeHtml(o.customer.name || '')} · ${fmtMoney(o.totalAmount)}</div>
-        <div class="card-meta">${o.items.map(i => escapeHtml(i.name || '') + ' x' + escapeHtml(String(i.qty))).join(', ')}</div>
+        <div class="card-meta">${o.items.map(i => escapeHtml(i.productName || i.name || '') + ' x' + escapeHtml(String(i.quantity || i.qty || ''))).join(', ')}</div>
       </div>`).join('') || '<div class="empty"><p>Chưa có đơn hàng.</p></div>'}
 
     <div class="card" style="margin-top:16px;">
@@ -85,7 +85,12 @@ export async function renderMarket() {
 
 window.viewTrace = async (id) => {
   window.showToast?.('🔍 Đang mở truy xuất...', '');
-  // Redirect to lot detail
+  try {
+    const { default: lotsModule } = await import('./lots.js');
+    if (typeof lotsModule.setCurrentLotId === 'function') lotsModule.setCurrentLotId(id);
+  } catch (_) {
+    try { window.__currentLotId = id; } catch (_) {}
+  }
   document.querySelector('[x-data]').__x.$data.nav('lots');
 };
 
@@ -133,11 +138,11 @@ window.wire_market = function() {
           address: fd.get('customerAddr') || ''
         },
         items: [{
-          name: `${lot.crop}${lot.variety ? ' - ' + lot.variety : ''} (${lot.code})`,
-          qty,
+          productName: `${lot.crop}${lot.variety ? ' - ' + lot.variety : ''} (${lot.code})`,
+          quantity: qty,
           unit,
           price,
-          lotId: lot.id
+          productId: lot.id
         }],
         totalAmount: price * qty,
         note: 'Đơn từ CHợ HTX Online — QR truy xuất: ' + lotStore.traceUrl(lot)
