@@ -272,21 +272,33 @@ export const authStore = {
     this.role = 'farmer'; this.permissions = [];
     await secureStore.remove('jwt');
     await secureStore.remove('jwt_refresh');
-    await Preferences.remove({ key: KEY }); // dọn legacy nếu còn
+    await Preferences.remove({ key: KEY });
     await this.save();
+    // Validate redirect URL — chặn open redirect / javascript:
+    const u = this.url || '';
+    if (u && /^https?:\/\//i.test(u) && typeof window !== 'undefined') {
+      window.location.href = u;
+    }
   },
 
+  _refreshing: null,
+
   async refreshToken() {
-    if (!this.refresh) throw new Error('no refresh token');
-    const r = await withTimeout(fetch(`${this.url}/api/auth/refresh`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken: this.refresh })
-    }), LOGIN_TIMEOUT_MS);
-    if (!r.ok) throw new Error('refresh fail');
-    const d = await r.json();
-    this.token = d.accessToken || d.token;
-    if (d.refreshToken) this.refresh = d.refreshToken;
-    await this.save();
+    if (this._refreshing) return this._refreshing;
+    this._refreshing = (async () => {
+      if (!this.refresh) throw new Error('no refresh token');
+      const r = await withTimeout(fetch(`${this.url}/api/auth/refresh`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: this.refresh })
+      }), LOGIN_TIMEOUT_MS);
+      if (!r.ok) throw new Error('refresh fail');
+      const d = await r.json();
+      this.token = d.accessToken || d.token;
+      if (d.refreshToken) this.refresh = d.refreshToken;
+      await this.save();
+    })();
+    try { return await this._refreshing; }
+    finally { this._refreshing = null; }
   },
 
   authHeader() {

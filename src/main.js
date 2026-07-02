@@ -3,6 +3,7 @@ import Alpine from 'alpinejs';
 import { Network } from '@capacitor/network';
 import { App as CapApp } from '@capacitor/app';
 
+import { esc } from './lib/escape.js';
 import { authStore } from './stores/auth.js';
 import { syncQueue } from './stores/sync.js';
 import { pushStore } from './stores/push.js';
@@ -148,8 +149,6 @@ window.appRoot = function () {
     alertBadge: 0,
     async init() {
       const ok = await authStore.restore();
-      // V3.0.1 — seed default PIN (hash of "1234") on first run so login works offline.
-      // Subsequent runs: user can change PIN in Settings; seed is idempotent.
       try { await authStore.seedDefaultPinIfEmpty(); } catch (_) {}
       this.authed = ok;
       const status = await Network.getStatus();
@@ -165,18 +164,16 @@ window.appRoot = function () {
         fontStore.apply(fontScale);
         await this.nav('dashboard');
         if (this.online) syncQueue.processQueue();
-        // V1.1 — start push polling
         try { await pushStore.init(); } catch(_) {}
-        // V3.1 FIX #6 — runner check alert khi app bị kill: cần url + token trong KV
         try { await bgsync.pushConfigToRunner(); } catch(_) {}
       } else {
         await this.renderLoginPage();
       }
-      setInterval(() => {
+      this._pollTimer = setInterval(() => {
         if (this.online) syncQueue.processQueue();
         this.refreshAlertBadge();
       }, 30000);
-      CapApp.addListener('resume', () => {
+      this._resumeListener = CapApp.addListener('resume', () => {
         if (this.online) syncQueue.processQueue();
       });
     },
@@ -241,7 +238,7 @@ window.appRoot = function () {
         const fn = ROUTES[page] || renderDashboard;
         html = await fn();
       } catch (err) {
-        html = `<div class="empty"><div class="ico">⚠</div><p>${err.message}</p></div>`;
+        html = `<div class="empty"><div class="ico">⚠</div><p>${esc(err.message)}</p></div>`;
       }
       this.pageHtml = html;
       this.$nextTick(() => {

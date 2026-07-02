@@ -16,6 +16,7 @@ const MAT_KEY = 'materials:catalog';
 const SEQ_KEY = 'lot:seq';
 const LOT_INDEX_KEY = 'lot:index';
 const EVT_INDEX_PREFIX = 'traceevt:idx:';
+const _lotLocks = {};
 
 export const ACTIVITY_LABELS = {
   planting: '🌱 Xuống giống',
@@ -525,6 +526,9 @@ export const lotStore = {
 
   // Ghi hoạt động vào lô + cập nhật PHI nếu dùng thuốc BVTV
   async recordActivity(lotId, evt) {
+    // Per-lot mutex ngăn concurrent read-before-write
+    if (_lotLocks[lotId]) await _lotLocks[lotId];
+    _lotLocks[lotId] = (async () => {
     const lot = await this.byId(lotId);
     if (!lot) throw new Error('Không tìm thấy lô');
     if (lot.status === 'closed') throw new Error('Lô đã đóng — không ghi thêm được');
@@ -628,6 +632,9 @@ export const lotStore = {
       })
     });
     return { event: full, phiApplied, lot };
+    })();
+    try { return await _lotLocks[lotId]; }
+    finally { delete _lotLocks[lotId]; }
   },
 
   // Kiểm tra khoá PHI — trả {locked, until, source, daysLeft}

@@ -19,10 +19,9 @@ async function listByPrefix(prefix) {
 }
 
 export const syncQueue = {
-  busy: false,
+  _processLock: null,
 
   async enqueue(item) {
-    // item: { path, method, body, ts, retries }
     const id = `${PREFIX}${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
     item.ts = Date.now();
     item.retries = 0;
@@ -35,46 +34,45 @@ export const syncQueue = {
   async size() { return (await this.list()).length; },
 
   async processQueue() {
-    if (this.busy) return;
-    this.busy = true;
-    let movedToDead = 0;
-    try {
-      const items = await this.list();
-      for (const it of items) {
-        try {
-          const r = await fallbackFetch(it.path, {
-            method: it.method || 'POST',
-            body: typeof it.body === 'string' ? it.body : JSON.stringify(it.body)
-          });
-          if (r.ok || r.status === 201) {
-            await del(it.id);
-          } else if (r.status >= 400 && r.status < 500 && r.status !== 408 && r.status !== 429) {
-            // permanent client error → sau 3 retry chuyển DEAD-LETTER (không xoá)
-            it.retries = (it.retries || 0) + 1;
-            if (it.retries >= 3) {
-              await this._moveToDead(it, `HTTP ${r.status}`);
-              movedToDead++;
+    if (this._processLock) return this._processLock;
+    this._processLock = (async () => {
+      let movedToDead = 0;
+      try {
+        const items = await this.list();
+        for (const it of items) {
+          try {
+            const r = await fallbackFetch(it.path, {
+              method: it.method || 'POST',
+              body: typeof it.body === 'string' ? it.body : JSON.stringify(it.body)
+            });
+            if (r.ok || r.status === 201) {
+              await del(it.id);
+            } else if (r.status >= 400 && r.status < 500 && r.status !== 408 && r.status !== 429) {
+              it.retries = (it.retries || 0) + 1;
+              if (it.retries >= 3) {
+                await this._moveToDead(it, `HTTP ${r.status}`);
+                movedToDead++;
+              } else {
+                const { id, ...data } = it;
+                await set(id, data);
+              }
             } else {
+              it.retries = (it.retries || 0) + 1;
               const { id, ...data } = it;
               await set(id, data);
             }
-          } else {
-            // server error → keep
-            it.retries = (it.retries || 0) + 1;
-            const { id, ...data } = it;
-            await set(id, data);
+          } catch (err) {
+            continue;
           }
-        } catch (err) {
-          // network — keep, continue với item tiếp theo
-          continue;
+        }
+      } finally {
+        this._processLock = null;
+        if (movedToDead > 0 && typeof window !== 'undefined' && window.showToast) {
+          window.showToast(`⚠ ${movedToDead} bản ghi sync lỗi — xem mục "Sync lỗi" trong Cài đặt`, 'err');
         }
       }
-    } finally {
-      this.busy = false;
-      if (movedToDead > 0 && typeof window !== 'undefined' && window.showToast) {
-        window.showToast(`⚠ ${movedToDead} bản ghi sync lỗi — xem mục "Sync lỗi" trong Cài đặt`, 'err');
-      }
-    }
+    })();
+    return this._processLock;
   },
 
   async _moveToDead(it, reason) {

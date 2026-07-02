@@ -2,6 +2,7 @@
 import { fallbackFetch } from '../api/fallback-client.js';
 import { get, set } from 'idb-keyval';
 import Chart from 'chart.js/auto';
+import { esc } from '../lib/escape.js';
 
 const CACHE = 'cache:chart';
 
@@ -112,10 +113,10 @@ function renderChartJs(points, metric, range, fromCache) {
     document.getElementById('chart-stats').innerHTML = `
       <div class="card" style="margin:0;">
         <div class="row">
-          <div><div class="metric-label">Min</div><div class="metric">${min}</div></div>
-          <div><div class="metric-label">Avg</div><div class="metric">${avg}</div></div>
-          <div><div class="metric-label">Max</div><div class="metric">${max}</div></div>
-          <div><div class="metric-label">Points</div><div class="metric">${valid.length}</div></div>
+          <div><div class="metric-label">Min</div><div class="metric">${esc(min)}</div></div>
+          <div><div class="metric-label">Avg</div><div class="metric">${esc(avg)}</div></div>
+          <div><div class="metric-label">Max</div><div class="metric">${esc(max)}</div></div>
+          <div><div class="metric-label">Points</div><div class="metric">${esc(valid.length)}</div></div>
         </div>
       </div>`;
   } else {
