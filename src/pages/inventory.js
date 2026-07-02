@@ -267,7 +267,11 @@ window.wire_inventory = function () {
 };
 
 // ============ CSV helpers ============
-function csvCell(v) { const s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+function csvCell(v) {
+  let s = String(v == null ? '' : v);
+  if (/^[=+\-@\t]/.test(s)) s = '\t' + s;
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
 function toCsv(rows) { return '﻿' + rows.map(r => r.map(csvCell).join(',')).join('\r\n'); }
 const isNative = () => { try { return Capacitor.isNativePlatform && Capacitor.isNativePlatform(); } catch (_) { return false; } };
 
