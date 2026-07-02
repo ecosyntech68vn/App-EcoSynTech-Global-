@@ -47,6 +47,12 @@ export async function renderSettings() {
         <option value="auto" ${authStore.mode==='auto'?'selected':''}>Auto (LAN → Cloud)</option>
       </select>
 
+      <label>Múi giờ (UTC)</label>
+      <select id="set-tz">
+        ${[-12,-11,-10,-9,-8,-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14].map(o =>
+          `<option value="${o}" ${(authStore.timezoneOffset??7)===o?'selected':''}>UTC${o>=0?'+':''}${o}</option>`).join('')}
+      </select>
+
       <div style="margin-top:18px;">
         <button id="save-settings" class="btn">Lưu cài đặt</button>
       </div>
@@ -288,6 +294,7 @@ window.wire_settings = function() {
     authStore.url = url;
     authStore.cloudUrl = cloudUrl;
     authStore.mode = mode;
+    authStore.timezoneOffset = parseInt(document.getElementById('set-tz')?.value) || 7;
     await authStore.save();
     bgsync.pushConfigToRunner();
     window.showToast?.('✓ Đã lưu', 'ok');

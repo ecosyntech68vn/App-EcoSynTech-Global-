@@ -74,6 +74,8 @@ export const authStore = {
   // WLC sẽ phát qua JWT; khi chưa có server, đổi trong Settings (demo/quản trị).
   plan: 'pro',
   features: [],
+  // V7.0.3 — múi giờ (GMT+7 mặc định cho VN). Có thể đổi trong Settings.
+  timezoneOffset: 7,
 
   async restore() {
     // 1. Config không nhạy cảm
@@ -133,7 +135,8 @@ export const authStore = {
         permissions: this.permissions,
         traceSyncEnabled: this.traceSyncEnabled,
         plan: this.plan,
-        features: this.features
+        features: this.features,
+        timezoneOffset: this.timezoneOffset
       })
     });
   },

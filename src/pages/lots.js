@@ -9,6 +9,41 @@ import { complianceStore, VIETGAP_CRITERIA, GLOBALGAP_CRITERIA } from '../stores
 import { budgetStore } from '../stores/budget.js';
 import qrcode from 'qrcode-generator';
 
+// Timezone helpers — dùng authStore.timezoneOffset (mặc định +7 VN)
+function parseDatetimeLocal(str, offset) {
+  if (!str) return Date.now();
+  const o = offset ?? authStore.timezoneOffset ?? 7;
+  const [datePart, timePart] = str.split('T');
+  const [y, m, d] = datePart.split('-').map(Number);
+  const [h, min] = (timePart || '00:00').split(':').map(Number);
+  return Date.UTC(y, m - 1, d, h - o, min, 0);
+}
+function fmtTS(ts, offset) {
+  const o = offset ?? authStore.timezoneOffset ?? 7;
+  const dt = new Date(ts + o * 3600000);
+  return String(dt.getUTCDate()).padStart(2, '0') + '/' +
+    String(dt.getUTCMonth() + 1).padStart(2, '0') + '/' +
+    dt.getUTCFullYear() + ', ' +
+    String(dt.getUTCHours()).padStart(2, '0') + ':' +
+    String(dt.getUTCMinutes()).padStart(2, '0');
+}
+function nowDatetimeLocal(offset) {
+  const o = offset ?? authStore.timezoneOffset ?? 7;
+  const dt = new Date(Date.now() + o * 3600000);
+  return dt.getUTCFullYear() + '-' +
+    String(dt.getUTCMonth() + 1).padStart(2, '0') + '-' +
+    String(dt.getUTCDate()).padStart(2, '0') + 'T' +
+    String(dt.getUTCHours()).padStart(2, '0') + ':' +
+    String(dt.getUTCMinutes()).padStart(2, '0');
+}
+function todayDate(offset) {
+  const o = offset ?? authStore.timezoneOffset ?? 7;
+  const dt = new Date(Date.now() + o * 3600000);
+  return dt.getUTCFullYear() + '-' +
+    String(dt.getUTCMonth() + 1).padStart(2, '0') + '-' +
+    String(dt.getUTCDate()).padStart(2, '0');
+}
+
 let currentLotId = null; // state: null = list view, khác null = detail view
 
 export function setCurrentLotId(id) { currentLotId = id; }
@@ -41,7 +76,7 @@ async function renderLotList() {
           <label>Diện tích</label>
           <input name="area" inputmode="text" placeholder="500 m², 0.2 ha..." />
           <label>Ngày xuống giống</label>
-          <input name="plantedAt" type="date" value="${new Date().toISOString().slice(0,10)}" />
+          <input name="plantedAt" type="date" value="${todayDate()}" />
           <label>Ghi chú</label>
           <textarea name="note" placeholder="Nguồn giống, xử lý đất..."></textarea>
 
@@ -170,7 +205,7 @@ async function renderLotDetail(lotId) {
     ${phi.locked ? `
     <div class="card crit">
       <div class="card-title">🔒 Khoá thu hoạch — thời gian cách ly (PHI)</div>
-      <div class="card-meta">Thuốc: <strong>${escapeHtml(phi.source)}</strong> · Còn <strong>${phi.daysLeft} ngày</strong> (đến ${new Date(phi.until).toLocaleDateString('vi-VN')})</div>
+      <div class="card-meta">Thuốc: <strong>${escapeHtml(phi.source)}</strong> · Còn <strong>${phi.daysLeft} ngày</strong> (đến ${fmtTS(phi.until).split(',')[0]})</div>
       <div class="card-meta">Thu hoạch trước hạn = tồn dư thuốc BVTV vượt ngưỡng — vi phạm VietGAP/an toàn thực phẩm.</div>
     </div>` : ''}
 
@@ -180,7 +215,7 @@ async function renderLotDetail(lotId) {
         <summary class="btn secondary" style="display:block; text-align:center; cursor:pointer; list-style:none;">＋ Ghi hoạt động vào lô</summary>
         <form id="lot-evt-form" style="margin-top:12px;">
           <label>Ngày thực hiện</label>
-          <input name="ts" type="datetime-local" value="${new Date().toISOString().slice(0,16)}" />
+          <input name="ts" type="datetime-local" value="${nowDatetimeLocal()}" />
           <label>Hoạt động</label>
           <select name="type" id="evt-type">
             ${Object.entries(ACTIVITY_LABELS).filter(([k]) => !['planting','harvest'].includes(k)).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}
@@ -214,7 +249,7 @@ async function renderLotDetail(lotId) {
             <select name="unit" style="flex:1;"><option>kg</option><option>tấn</option><option>thùng</option><option>bó</option></select>
           </div>
           <label>Ngày thu hoạch</label>
-          <input name="date" type="date" value="${new Date().toISOString().slice(0,10)}" />
+          <input name="date" type="date" value="${todayDate()}" />
           ${phi.locked && isManager ? `
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer; color:#c62828;">
             <input type="checkbox" name="overridePhi" />
@@ -258,7 +293,7 @@ async function renderLotDetail(lotId) {
       <div class="card">
         <div class="row">
           <div class="card-title" style="font-size:14px;">${ACTIVITY_LABELS[e.type] || e.type}</div>
-          <span class="card-meta">${new Date(e.ts).toLocaleString('vi-VN')}</span>
+          <span class="card-meta">${fmtTS(e.ts)}</span>
         </div>
         ${e.materialName ? `<div class="card-meta">Vật tư: <strong>${escapeHtml(e.materialName)}</strong>${e.dose ? ' · ' + escapeHtml(e.dose) + ' ' + escapeHtml(e.doseUnit || '') : ''}</div>` : ''}
         ${e.materials && e.materials.length > 1 ? `<div class="card-meta" style="font-size:11px;">🧪 Tank mix: ${e.materials.map(m => escapeHtml(m.name) + (m.dose ? ' ' + escapeHtml(m.dose) + ' ' + escapeHtml(m.doseUnit || '') : '')).join(' | ')}</div>` : ''}
@@ -434,7 +469,7 @@ window.wire_lots = function() {
     const fd = new FormData(e.target);
     try {
       const tsRaw = fd.get('ts');
-      const ts = tsRaw ? new Date(tsRaw).getTime() : Date.now();
+      const ts = parseDatetimeLocal(tsRaw);
       // Tank mix: collect all material rows
       const materials = [];
       const rows = document.querySelectorAll('.evt-mat-row');
@@ -710,7 +745,7 @@ async function exportTracePdf(lot, events, en = false) {
     inspection: 'Inspection',
     harvest: 'Harvest',
     other: 'Other',
-    footer: `Issued: ${new Date().toLocaleString('en-US')} · Append-only record from EcoSynTech Farm OS — no modification possible after recording.`
+    footer: `Issued: ${fmtTS(Date.now())} · Append-only record from EcoSynTech Farm OS — no modification possible after recording.`
   } : {
     header: 'PHIẾU TRUY XUẤT NGUỒN GỐC',
     subHeader: 'EcoSynTech Farm OS',
@@ -740,7 +775,7 @@ async function exportTracePdf(lot, events, en = false) {
     inspection: 'Kiểm tra',
     harvest: 'Thu hoạch',
     other: 'Khác',
-    footer: `Phát hành: ${new Date().toLocaleString('vi-VN')} · Hồ sơ append-only từ EcoSynTech Farm OS — không chỉnh sửa được sau khi ghi.`
+    footer: `Phát hành: ${fmtTS(Date.now())} · Hồ sơ append-only từ EcoSynTech Farm OS — không chỉnh sửa được sau khi ghi.`
   };
 
   const W = 1000;
@@ -831,10 +866,9 @@ async function exportTracePdf(lot, events, en = false) {
   y += 14; ctx.strokeStyle = '#ccc'; ctx.beginPath(); ctx.moveTo(40, y); ctx.lineTo(W - 40, y); ctx.stroke();
   y += lineH;
   const LBL = { planting: TX.planting, irrigation: TX.irrigation, fertilizer: TX.fertilizer, pest: TX.pest, weeding: TX.weeding, inspection: TX.inspection, harvest: TX.harvest, other: TX.other };
-  const dateLocale = en ? 'en-US' : 'vi-VN';
   for (const e of events) {
     ctx.fillStyle = '#555'; ctx.font = '20px sans-serif';
-    ctx.fillText(new Date(e.ts).toLocaleString(dateLocale), 40, y);
+    ctx.fillText(fmtTS(e.ts), 40, y);
     ctx.fillStyle = '#111'; ctx.font = 'bold 22px sans-serif';
     ctx.fillText(LBL[e.type] || e.type, 300, y);
     ctx.font = '20px sans-serif';
