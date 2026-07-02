@@ -4,7 +4,7 @@
 //   Lô 2: ĐANG BỊ KHOÁ PHI (vừa phun Mancozeb) → demo tính năng an toàn thực phẩm.
 // Xoá sạch được bằng 1 nút — không lẫn với dữ liệu thật.
 import { get, set, del, keys } from 'idb-keyval';
-import { lotStore } from './trace.js';
+import { lotStore, inventoryStore, materialsStore } from './trace.js';
 
 const DEMO_KEY = 'demo:lots';
 const DAY = 86400000;
@@ -27,6 +27,21 @@ export const demoData = {
       note: '(Dữ liệu mẫu demo) Nguồn giống: Cty Giống Miền Nam'
     });
     created.push(lot1.id);
+    // Nhập tồn kho mẫu để không bị âm khi ghi nhật ký
+    const demoStock = [
+      { itemId: 'm_organic', qty: 50, unit: 'kg' },
+      { itemId: 'm_neem', qty: 5, unit: 'L' },
+      { itemId: 'm_npk', qty: 25, unit: 'kg' },
+      { itemId: 'm_mancozeb', qty: 1000, unit: 'g' }
+    ];
+    for (const s of demoStock) {
+      const mat = await materialsStore.byId(s.itemId);
+      if (mat) {
+        try {
+          await inventoryStore.post({ kind: 'raw', itemId: s.itemId, itemName: mat.name, type: 'import', qty: s.qty, unit: s.unit, ref: 'demo', doc: { docDate: new Date().toISOString().slice(0, 10), origin: 'Tồn mẫu demo' }, note: 'Nhập tồn kho mẫu demo' });
+        } catch (_) {}
+      }
+    }
     const ev1 = [
       { type: 'irrigation', note: 'Tưới tự động theo cảm biến độ ẩm đất', ts: now - 28 * DAY },
       { type: 'fertilizer', materialId: 'm_organic', dose: '10', doseUnit: 'kg/sào', ts: now - 24 * DAY },
