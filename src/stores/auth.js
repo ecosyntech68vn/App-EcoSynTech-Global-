@@ -296,4 +296,6 @@ export const authStore = {
   }
 };
 
+export function __resetPinCache() { _pinRecordCache = null; }
+
 if (typeof window !== 'undefined') window.authStore = authStore;

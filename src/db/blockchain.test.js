@@ -112,7 +112,7 @@ describe('blockchainStore', () => {
 
   it('should generate GS1 QR data string', () => {
     const data = mod.blockchainStore.generateGS1QRData('8938561601003', 'LOT001', 'S001');
-    expect(data).toBe('01893856160100310LOT00121S001');
+    expect(data).toBe('010893856160100310LOT00121S001');
   });
 
   it('should return explorer URL', () => {

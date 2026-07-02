@@ -287,7 +287,7 @@ describe('orderStore edge cases', () => {
     const code1 = await orderStore.nextCode();
     const code2 = await orderStore.nextCode();
     expect(code1).not.toBe(code2);
-    expect(code1).toContain('ORD-');
+    expect(code1.code).toContain('ORD-');
   });
 
   it('should handle VietQR generation with special characters in note', async () => {

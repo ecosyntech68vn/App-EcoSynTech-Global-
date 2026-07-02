@@ -28,12 +28,15 @@ vi.mock('./secure.js', () => ({
   }
 }));
 
-import { authStore } from '../stores/auth.js';
+import { authStore, __resetPinCache } from '../stores/auth.js';
 
-function clearStore() { Object.keys(mockStore).forEach(k => delete mockStore[k]); }
+function clearStore() {
+  Object.keys(mockStore).forEach(k => delete mockStore[k]);
+  try { __resetPinCache?.(); } catch (_) {}
+}
 
 describe('authStore', () => {
-  beforeEach(() => { clearStore(); });
+  beforeEach(async () => { clearStore(); });
 
   it('should login with default PIN 1234', async () => {
     mockStore['insec_pin_hash'] = JSON.stringify({ hash: 'e745d8297781431bc3d7885aec3c525bc5ff5a2629c6da17951ddb6d3813453b', v: 2, seededAt: '2026-01-01T00:00:00.000Z' });
