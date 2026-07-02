@@ -98,51 +98,83 @@ export async function renderOrders() {
     <div id="order-detail" style="display:none;padding:0 16px 80px;"></div>
 
     <div id="order-create" style="display:none;padding:0 16px 80px;">
+
       <div class="card">
-        <div class="card-title">Thông tin khách hàng</div>
-        <div style="display:flex;gap:4px;margin-bottom:4px;">
+        <div class="card-title">👤 Khách hàng</div>
+        <div style="display:flex;gap:4px;margin-bottom:6px;">
           <input id="ord-customer-search" class="form" list="ord-customer-list" placeholder="Chọn khách quen..." style="flex:1;" />
           <datalist id="ord-customer-list">${customerOptions}</datalist>
         </div>
-        <input id="ord-customer-name" class="form" placeholder="Tên khách hàng *" style="margin-bottom:4px;" />
-        <input id="ord-customer-phone" class="form" placeholder="Số điện thoại *" type="tel" style="margin-bottom:4px;" />
-        <input id="ord-customer-addr" class="form" placeholder="Địa chỉ giao hàng" />
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span style="font-size:13px;min-width:65px;color:var(--c-text-muted);">Họ tên *</span>
+          <input id="ord-customer-name" class="form" placeholder="Tên khách hàng" style="flex:1;" />
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span style="font-size:13px;min-width:65px;color:var(--c-text-muted);">Điện thoại *</span>
+          <input id="ord-customer-phone" class="form" type="tel" placeholder="090..." style="flex:1;" />
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:13px;min-width:65px;color:var(--c-text-muted);">Địa chỉ</span>
+          <input id="ord-customer-addr" class="form" placeholder="Địa chỉ giao hàng" style="flex:1;" />
+        </div>
       </div>
 
       <div class="card">
-        <div class="card-title">Sản phẩm</div>
+        <div class="card-title">🛍️ Sản phẩm</div>
         <div id="ord-items">
-          <div class="ord-item" style="display:flex;gap:4px;margin-bottom:4px;">
-            <select class="form ord-product" style="flex:2;font-size:12px;">
-              <option value="">-- Chọn sản phẩm --</option>
-              ${productOptions}
-            </select>
-            <input type="number" class="form ord-qty" placeholder="SL" style="flex:1;width:60px;" min="0" step="0.1" />
-            <input type="number" class="form ord-price" placeholder="Giá/kg" style="flex:1;width:80px;" min="0" />
-            <button class="ord-remove-item" style="background:none;border:0;color:#c62828;font-size:18px;cursor:pointer;">×</button>
+          <div class="ord-item" style="border:1px solid var(--c-border);border-radius:8px;padding:8px;margin-bottom:8px;">
+            <div style="display:flex;gap:6px;margin-bottom:6px;">
+              <select class="form ord-product" style="flex:1;font-size:12px;">
+                <option value="">-- Chọn sản phẩm --</option>
+                ${productOptions}
+              </select>
+              <button class="ord-remove-item" style="background:none;border:0;color:#c62828;font-size:22px;cursor:pointer;padding:0 6px;">×</button>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <div style="flex:1;">
+                <div style="font-size:11px;color:var(--c-text-muted);margin-bottom:2px;">Số lượng</div>
+                <input class="form ord-qty" placeholder="0" inputmode="decimal" style="width:100%;" />
+              </div>
+              <div style="flex:1;">
+                <div style="font-size:11px;color:var(--c-text-muted);margin-bottom:2px;">Đơn giá</div>
+                <input class="form ord-price" placeholder="0" inputmode="numeric" style="width:100%;" />
+              </div>
+              <div style="flex:1;text-align:right;">
+                <div style="font-size:11px;color:var(--c-text-muted);margin-bottom:2px;">Thành tiền</div>
+                <div class="ord-subtotal" style="font-weight:600;font-size:15px;padding:6px 0;">0₫</div>
+              </div>
+            </div>
           </div>
         </div>
-        <button id="ord-add-item" class="btn secondary" style="width:100%;font-size:12px;">＋ Thêm sản phẩm</button>
+        <button id="ord-add-item" class="btn secondary" style="width:100%;font-size:13px;padding:10px;">＋ Thêm sản phẩm</button>
       </div>
 
       <div class="card">
-        <div class="card-title">Thanh toán</div>
-        <select id="ord-payment" class="form">
-          <option value="bank_transfer">🏦 Chuyển khoản (VietQR)</option>
-          <option value="cod">💵 COD (tiền mặt)</option>
-          <option value="momo">📱 MoMo</option>
-          <option value="zalopay">💳 ZaloPay</option>
-        </select>
-        <input id="ord-note" class="form" placeholder="Ghi chú đơn hàng" style="margin-top:4px;" />
-        <div style="margin-top:8px;display:flex;justify-content:space-between;font-weight:600;">
-          <span>Tạm tính:</span>
-          <span id="ord-total-display">0₫</span>
+        <div class="card-title">💳 Thanh toán</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span style="font-size:13px;min-width:65px;color:var(--c-text-muted);">Phương thức</span>
+          <select id="ord-payment" class="form" style="flex:1;">
+            <option value="bank_transfer">🏦 Chuyển khoản (VietQR)</option>
+            <option value="cod">💵 COD</option>
+            <option value="momo">📱 MoMo</option>
+            <option value="zalopay">💳 ZaloPay</option>
+          </select>
         </div>
-        <div style="margin-top:4px;display:flex;justify-content:space-between;font-weight:700;font-size:16px;">
-          <span>Tổng cộng:</span>
-          <span id="ord-grand-total" style="color:#2E7D32;">0₫</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:13px;min-width:65px;color:var(--c-text-muted);">Ghi chú</span>
+          <input id="ord-note" class="form" placeholder="Ghi chú đơn hàng" style="flex:1;" />
         </div>
-        <button id="ord-submit" class="btn primary" style="width:100%;margin-top:10px;font-size:15px;">📝 Tạo đơn hàng</button>
+        <div style="margin-top:12px;border-top:1px solid var(--c-border);padding-top:10px;">
+          <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:4px;">
+            <span style="color:var(--c-text-muted);">Tạm tính:</span>
+            <span id="ord-total-display">0₫</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-weight:700;font-size:18px;">
+            <span>Tổng cộng:</span>
+            <span id="ord-grand-total" style="color:#2E7D32;">0₫</span>
+          </div>
+        </div>
+        <button id="ord-submit" class="btn primary" style="width:100%;margin-top:12px;font-size:16px;padding:14px;">📝 Tạo đơn hàng</button>
       </div>
 
       ${bankCfg.accountNo ? `
@@ -169,12 +201,16 @@ function wireOrderItemEvents() {
     clone.querySelector('.ord-product').value = '';
     clone.querySelector('.ord-qty').value = '';
     clone.querySelector('.ord-price').value = '';
+    clone.querySelector('.ord-subtotal').textContent = '0₫';
     clone.querySelector('.ord-remove-item')?.addEventListener('click', function () {
       this.closest('.ord-item')?.remove();
       updateOrderTotal();
     });
     clone.querySelectorAll('.ord-qty, .ord-price, .ord-product').forEach(el => {
       el.addEventListener('input', updateOrderTotal);
+      if (el.classList.contains('ord-qty') || el.classList.contains('ord-price')) {
+        el.addEventListener('input', function () { this.value = this.value.replace(/[^0-9.]/g, ''); });
+      }
     });
     document.getElementById('ord-items')?.appendChild(clone);
   });
@@ -187,7 +223,11 @@ function wireOrderItemEvents() {
     });
   });
 
-  document.querySelectorAll('.ord-qty, .ord-price, .ord-product').forEach(el => {
+  document.querySelectorAll('.ord-qty, .ord-price').forEach(el => {
+    el.addEventListener('input', updateOrderTotal);
+    el.addEventListener('input', function () { this.value = this.value.replace(/[^0-9.]/g, ''); });
+  });
+  document.querySelectorAll('.ord-product').forEach(el => {
     el.addEventListener('input', updateOrderTotal);
   });
 }
@@ -195,10 +235,12 @@ function wireOrderItemEvents() {
 function updateOrderTotal() {
   let total = 0;
   document.querySelectorAll('.ord-item').forEach(item => {
-    const product = item.querySelector('.ord-product');
     const qty = parseFloat(item.querySelector('.ord-qty')?.value) || 0;
     const price = parseFloat(item.querySelector('.ord-price')?.value) || 0;
-    total += qty * price;
+    const sub = qty * price;
+    total += sub;
+    const subEl = item.querySelector('.ord-subtotal');
+    if (subEl) subEl.textContent = sub.toLocaleString('vi-VN') + '₫';
   });
   const display = document.getElementById('ord-total-display');
   const grand = document.getElementById('ord-grand-total');
