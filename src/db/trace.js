@@ -357,11 +357,15 @@ export function buildEPCISEvent({ type, gtin, lot, bizStep, quantity, unit, loca
     storage: 'holding'
   };
   const epcisType = type === 'harvest' ? 'harvesting' : type;
+  const tz = (authStore.timezoneOffset ?? 7);
+  const sign = tz >= 0 ? '+' : '-';
+  const abs = Math.abs(tz);
+  const tzStr = sign + String(abs).padStart(2, '0') + ':00';
   return {
     '@context': 'https://ref.gs1.org/gs1/jsonld/epcis-context.jsonld',
     isA: 'ObjectEvent',
     eventTime: new Date(timestamp || Date.now()).toISOString(),
-    eventTimeZoneOffset: '+07:00',
+    eventTimeZoneOffset: tzStr,
     action: action || 'OBSERVE',
     bizStep: `urn:epcglobal:cbv:bizstep:${steps[epcisType] || 'inspecting'}`,
     disposition: 'urn:epcglobal:cbv:disp:active',
@@ -613,7 +617,7 @@ export const lotStore = {
         activity: full.type, zoneId: lot.zoneId, note: full.note,
         lotId: lot.id, lotCode: lot.code,
         material: full.materialName, dose: full.dose, doseUnit: full.doseUnit,
-        gps: full.gps, photoPath: full.photoPath, ts: full.ts
+        gps: full.gps, photoPath: full.photoPath, ts: full.ts, timezoneOffset: authStore.timezoneOffset ?? 7
       })
     });
     return { event: full, phiApplied, lot };
@@ -707,7 +711,7 @@ export const lotStore = {
   _syncLot(lot, action) {
     // Backend WLC chưa có /api/lots — chỉ queue khi bật cờ (Settings tương lai / backend V6.1)
     if (!authStore.traceSyncEnabled) return;
-    syncQueue.enqueue({ path: '/api/lots', method: 'POST', body: JSON.stringify({ action, lot }) });
+    syncQueue.enqueue({ path: '/api/lots', method: 'POST', body: JSON.stringify({ action, lot, timezoneOffset: authStore.timezoneOffset ?? 7 }) });
   }
 };
 
